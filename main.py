@@ -1,3 +1,5 @@
+from PyPDF2 import PdfReader
+import re
 import os
 import textwrap
 import google.generativeai as genai
@@ -8,8 +10,6 @@ import json
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import shutil
-
-from services.pdfReaderService import PDFReaderService
 
 
 # Configure the API Key
@@ -146,6 +146,48 @@ def extract_data_from_response(response):
     except json.JSONDecodeError:
         return "Error: The response is not valid JSON."
 
+
+# Extract metadata from PDF
+def parse_pdf_date(pdf_date):
+    """Converts PDF metadata date to a readable format."""
+    match = re.match(r"D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", pdf_date)
+    if match:
+        return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
+    return "Fecha no disponible"
+
+
+def extract_metadata(filepath):
+    """
+    Extracts metadata from a PDF file.
+    """
+    details = {"filename": os.path.basename(filepath), "author": "No disponible", "created_at": "N/A", "modified_at": "N/A"}
+    try:
+        reader = PdfReader(filepath)
+        metadata = reader.metadata
+        if metadata:
+            details["author"] = metadata.get('/Author', "No disponible")
+            details["created_at"] = parse_pdf_date(metadata.get('/CreationDate', ""))
+            details["modified_at"] = parse_pdf_date(metadata.get('/ModDate', ""))
+    except Exception as e:
+        print(f"Error al leer PDF: {e}")
+    return details
+
+
+def extract_text(filepath):
+    """
+    Extracts full text content from a PDF file.
+    """
+    text = ""
+    try:
+        reader = PdfReader(filepath)
+        for page in reader.pages:
+            text += page.extract_text() or ""
+    except Exception as e:
+        print(f"Error al extraer texto del PDF: {e}")
+    return text
+
+
+
 # GUI Application to process and manage files
 def main_gui():
     def upload_file():
@@ -185,7 +227,7 @@ def main_gui():
         Processes the selected PDF file to extract metadata and textual details.
         """
         # Extract metadata
-        metadata = PDFReaderService.extract_metadata(pdf_file_path)
+        metadata = extract_metadata(pdf_file_path)
         details_text.delete("1.0", tk.END)
         details_text.insert(tk.END, f"File Name: {metadata['filename']}\n")
         details_text.insert(tk.END, f"Author: {metadata['author']}\n")
