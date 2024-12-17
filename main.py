@@ -11,7 +11,6 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import shutil
 
-
 # Configure the API Key
 def configure_api():
     """
@@ -146,7 +145,6 @@ def extract_data_from_response(response):
     except json.JSONDecodeError:
         return "Error: The response is not valid JSON."
 
-
 # Extract metadata from PDF
 def parse_pdf_date(pdf_date):
     """Converts PDF metadata date to a readable format."""
@@ -154,7 +152,6 @@ def parse_pdf_date(pdf_date):
     if match:
         return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
     return "Fecha no disponible"
-
 
 def extract_metadata(filepath):
     """
@@ -172,7 +169,6 @@ def extract_metadata(filepath):
         print(f"Error al leer PDF: {e}")
     return details
 
-
 def extract_text(filepath):
     """
     Extracts full text content from a PDF file.
@@ -185,8 +181,6 @@ def extract_text(filepath):
     except Exception as e:
         print(f"Error al extraer texto del PDF: {e}")
     return text
-
-
 
 # GUI Application to process and manage files
 def main_gui():
@@ -223,10 +217,6 @@ def main_gui():
             process_pdf(file_path)
 
     def process_pdf(pdf_file_path):
-        """
-        Processes the selected PDF file to extract metadata and textual details.
-        """
-        # Extract metadata
         metadata = extract_metadata(pdf_file_path)
         details_text.delete("1.0", tk.END)
         details_text.insert(tk.END, f"File Name: {metadata['filename']}\n")
@@ -242,7 +232,7 @@ def main_gui():
         chunks = split_text_into_chunks(pdf_content)
         embeddings_with_chunks = [(chunk, generate_text_embedding(chunk)) for chunk in chunks]
 
-        question = "To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:\n{\nproveedor: provider_name,\nruc: provider_ruc,\nvalor_adjudicado: awarded_value,\nadministrador: contract_administrator\n}\nwithout any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response"
+        question = "To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:\n{\nproveedor: provider_name,\nruc: provider_ruc,\nvalor_adjudicado: awarded_value,\nadministrador: contract_administrator\n}\nwithout any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."
         response = generate_response_from_embeddings(question, embeddings_with_chunks)
         result = extract_data_from_response(response)
         details_text.insert(tk.END, result)
@@ -251,28 +241,56 @@ def main_gui():
     root.title("PDF Management System")
     root.state('zoomed')
 
-    # File Table
-    tk.Label(root, text="Uploaded Files:").pack(pady=5)
+    # Title of the application
+    title_label = tk.Label(root, text="PDF Management System", font=("Helvetica", 18, "bold"))
+    title_label.pack(pady=10)
+
+    # Menu with buttons
+    menu_frame = tk.Frame(root)
+    menu_frame.pack(fill="x", pady=5, padx=50)
+
+    tk.Button(menu_frame, text="Upload File", command=upload_file).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Download File", command=download_file).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Details", command=show_details).pack(side="left", padx=5, pady=5)
+
+    # Main Content Frame
+    content_frame = tk.Frame(root)
+    content_frame.pack(expand=True, fill="both", padx=30, pady=30)
+
+    # Left Frame (File Table)
+    left_frame = tk.Frame(content_frame)
+    left_frame.grid(row=0, column=0, sticky="nsew", padx=15)
+
+    tk.Label(left_frame, text="Uploaded Files:", font=("Helvetica", 12, "bold")).pack(pady=5)
     columns = ("#", "File Name")
-    tree = ttk.Treeview(root, columns=columns, show="headings")
+    global tree
+    tree = ttk.Treeview(left_frame, columns=columns, show="headings")
+
+    tree.column("#", width=30, anchor="center")
     tree.heading("#", text="#")
-    tree.heading("File Name", text="File Name")
-    tree.pack(expand=True, fill='both', padx=30, pady=30)
+
+    tree.column("File Name", anchor="w", stretch=True)
+    tree.heading("File Name", text="File Name", anchor="w")
+
+    tree.pack(expand=True, fill="both")
     load_file_table()
 
-    # Buttons
-    button_frame = tk.Frame(root)
-    button_frame.pack(pady=5)
-    tk.Button(button_frame, text="Upload File", command=upload_file).grid(row=0, column=0, padx=5)
-    tk.Button(button_frame, text="Download File", command=download_file).grid(row=0, column=1, padx=5)
-    tk.Button(button_frame, text="Details", command=show_details).grid(row=0, column=2, padx=5)
+    # Right Frame (Details Text Output)
+    right_frame = tk.Frame(content_frame)
+    right_frame.grid(row=0, column=1, sticky="nsew", padx=15)
 
-    # Details Text Output
-    tk.Label(root, text="File Details:").pack(pady=5)
-    details_text = tk.Text(root)
-    details_text.pack(expand=True, fill='both', padx=30, pady=30)
+    tk.Label(right_frame, text="File Details:", font=("Helvetica", 12, "bold")).pack(pady=5)
+    global details_text
+    details_text = tk.Text(right_frame, wrap="word")
+    details_text.pack(expand=True, fill="both")
+
+    # Configure grid layout for equal column width
+    content_frame.grid_columnconfigure(0, weight=1)
+    content_frame.grid_columnconfigure(1, weight=1)
+    content_frame.grid_rowconfigure(0, weight=1)
 
     root.mainloop()
+
 
 if __name__ == "__main__":
     main_gui()
