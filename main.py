@@ -104,46 +104,46 @@ def generate_text_embedding(text, title="Text Chunk"):
 # Process JSON response and extract data
 def extract_data_from_response(response):
     """
-    Processes a JSON-formatted response and extracts specific fields.
-    Throws an error for fields with null or missing values.
+    Procesa una respuesta JSON y extrae campos específicos en formato de diccionario.
     """
-    print(response)
     try:
         if not response.strip():
-            return "Error: Response is empty or invalid."
+            return {"Error": "Response is empty or invalid."}
 
         data = json.loads(response)
         errors = []
-        provider = data.get('proveedor')
-        ruc = data.get('ruc')
-        awarded_value = data.get('valor_adjudicado')
-        administrator = data.get('administrador')
+        provider = data.get('proveedor') or "could not find the value"
+        ruc = data.get('ruc') or "could not find the value"
+        awarded_value = data.get('valor_adjudicado') or "could not find the value"
+        administrator = data.get('administrador') or "could not find the value"
 
-        # Check for null or missing fields
-        if not provider:
-            errors.append("Provider: could not find the value")
-        if not ruc:
-            errors.append("RUC: could not find the value")
-        if not awarded_value:
-            errors.append("Awarded Value: could not find the value")
-        if not administrator:
-            errors.append("Contract Administrator: could not find the value")
+        # Construir el resultado como diccionario
+        result = {
+            "Provider": provider,
+            "RUC": ruc,
+            "Awarded Value": awarded_value,
+            "Contract Administrator": administrator,
+        }
 
-        # Format result with errors or valid values
-        result = [
-            f"Provider: {provider or 'could not find the value'}",
-            f"RUC: {ruc or 'could not find the value'}",
-            f"Awarded Value: {awarded_value or 'could not find the value'}",
-            f"Contract Administrator: {administrator or 'could not find the value'}"
-        ]
+        # Añadir errores si existen
+        if "could not find the value" in [provider, ruc, awarded_value, administrator]:
+            errors_list = []
+            if provider == "could not find the value":
+                errors_list.append("Provider: could not find the value")
+            if ruc == "could not find the value":
+                errors_list.append("RUC: could not find the value")
+            if awarded_value == "could not find the value":
+                errors_list.append("Awarded Value: could not find the value")
+            if administrator == "could not find the value":
+                errors_list.append("Contract Administrator: could not find the value")
 
-        if errors:
-            result.append("\nErrors:\n" + "\n".join(errors))
+            result["Errors"] = "\n".join(errors_list)
 
-        return "\n".join(result)
+        return result
 
     except json.JSONDecodeError:
-        return "Error: The response is not valid JSON."
+        return {"Error": "The response is not valid JSON."}
+
 
 # Extract metadata from PDF
 def parse_pdf_date(pdf_date):
@@ -154,14 +154,18 @@ def parse_pdf_date(pdf_date):
     return "Fecha no disponible"
 
 # Save details to JSON file
-def save_to_json(data, filename):
+def save_to_json(metadata, response_data, filename):
     """
-    Saves the given data into a JSON file inside the 'results' folder.
+    Guarda los metadatos y datos de respuesta en un archivo JSON.
     """
     os.makedirs("results", exist_ok=True)
     output_path = os.path.join("results", f"{filename}.json")
+    combined_data = {
+        "Metadata": metadata,
+        "Response": response_data
+    }
     with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(data, json_file, ensure_ascii=False, indent=4)
+        json.dump(combined_data, json_file, ensure_ascii=False, indent=4)
     print(f"Data saved to {output_path}")
 
 
@@ -244,13 +248,24 @@ def main_gui():
         chunks = split_text_into_chunks(pdf_content)
         embeddings_with_chunks = [(chunk, generate_text_embedding(chunk)) for chunk in chunks]
 
-        question = "To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:\n{\nproveedor: provider_name,\nruc: provider_ruc,\nvalor_adjudicado: awarded_value,\nadministrador: contract_administrator\n}\nwithout any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."
+        question = """To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:
+        {proveedor: provider_name, ruc: provider_ruc, valor_adjudicado: awarded_value, administrador: contract_administrator}
+        without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."""
         response = generate_response_from_embeddings(question, embeddings_with_chunks)
         result = extract_data_from_response(response)
-        details_text.insert(tk.END, result)
+        # Format 'result' to be readable if it is a dictionary
+        if isinstance(result, dict):
+            formatted_result = "\n".join([f"{key}: {value}" for key, value in result.items()])
+        else:
+            formatted_result = result
 
+        details_text.insert(tk.END, formatted_result)
+
+        print("metadata:", metadata)
+        print("response:", response)
+        print("result:", result)
         # Save to JSON
-        save_to_json(result, os.path.splitext(file_name)[0])
+        save_to_json(metadata, result, os.path.splitext(file_name)[0])
 
     root = tk.Tk()
     root.title("PDF Management System")
