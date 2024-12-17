@@ -215,6 +215,52 @@ def main_gui():
         for index, file in enumerate(files):
             tree.insert("", "end", values=(index + 1, file))
 
+        # Asociar evento para cargar detalles JSON automáticamente
+        tree.bind("<<TreeviewSelect>>", load_json_details)
+
+    def load_json_details(event):
+        """
+        Automatically loads JSON details of a selected file
+        and displays them in a custom format.
+        """
+        selected_item = tree.selection()
+        if selected_item:
+            file_name = tree.item(selected_item, 'values')[1]
+            base_name, _ = os.path.splitext(file_name)  # Quitar la extensión
+            json_path = os.path.join("results", f"{base_name}.json")
+
+            # Limpiar el widget de texto
+            details_text.delete("1.0", tk.END)
+
+            # Cargar y mostrar el JSON si existe
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as json_file:
+                    data = json.load(json_file)
+
+                    # Formatear los metadatos y la respuesta
+                    metadata = data.get("Metadata", {})
+                    response = data.get("Response", {})
+
+                    formatted_output = (
+                        f"File Name: {metadata.get('filename', 'N/A')}\n"
+                        f"Author: {metadata.get('author', 'N/A')}\n"
+                        f"Created At: {metadata.get('created_at', 'N/A')}\n"
+                        f"Modified At: {metadata.get('modified_at', 'N/A')}\n\n"
+                        f"Provider: {response.get('Provider', 'N/A')}\n"
+                        f"RUC: {response.get('RUC', 'N/A')}\n"
+                        f"Awarded Value: {response.get('Awarded Value', 'N/A')}\n"
+                        f"Contract Administrator: {response.get('Contract Administrator', 'N/A')}\n"
+                    )
+
+                    # Añadir errores si existen
+                    if "Errors" in response:
+                        formatted_output += f"Errors: {response.get('Errors')}\n"
+
+                    # Mostrar el resultado formateado
+                    details_text.insert(tk.END, formatted_output)
+            else:
+                details_text.insert(tk.END, f"No JSON file found for {file_name}.")
+
     def download_file():
         selected_item = tree.selection()
         if selected_item:
