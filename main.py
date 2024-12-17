@@ -153,6 +153,18 @@ def parse_pdf_date(pdf_date):
         return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
     return "Fecha no disponible"
 
+# Save details to JSON file
+def save_to_json(data, filename):
+    """
+    Saves the given data into a JSON file inside the 'results' folder.
+    """
+    os.makedirs("results", exist_ok=True)
+    output_path = os.path.join("results", f"{filename}.json")
+    with open(output_path, 'w', encoding='utf-8') as json_file:
+        json.dump(data, json_file, ensure_ascii=False, indent=4)
+    print(f"Data saved to {output_path}")
+
+
 def extract_metadata(filepath):
     """
     Extracts metadata from a PDF file.
@@ -214,9 +226,9 @@ def main_gui():
         if selected_item:
             file_name = tree.item(selected_item, 'values')[1]
             file_path = os.path.join("uploads", file_name)
-            process_pdf(file_path)
+            process_pdf(file_path, file_name)
 
-    def process_pdf(pdf_file_path):
+    def process_pdf(pdf_file_path, file_name):
         metadata = extract_metadata(pdf_file_path)
         details_text.delete("1.0", tk.END)
         details_text.insert(tk.END, f"File Name: {metadata['filename']}\n")
@@ -236,6 +248,9 @@ def main_gui():
         response = generate_response_from_embeddings(question, embeddings_with_chunks)
         result = extract_data_from_response(response)
         details_text.insert(tk.END, result)
+
+        # Save to JSON
+        save_to_json(result, os.path.splitext(file_name)[0])
 
     root = tk.Tk()
     root.title("PDF Management System")
