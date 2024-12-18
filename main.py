@@ -11,6 +11,9 @@ import json
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import shutil
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure the API Key
 def configure_api():
@@ -508,6 +511,25 @@ def main_gui():
     content_frame.grid_columnconfigure(0, weight=1)
     content_frame.grid_columnconfigure(1, weight=1)
     content_frame.grid_rowconfigure(0, weight=1)
+
+    # Footer Frame (Disclaimer)
+    footer_frame = tk.Frame(root, bg=BG_COLOR)
+    footer_frame.pack(side="bottom", fill="x")
+
+    disclaimer_text = """Disclaimer: The information provided by this application is generated automatically based on the input data and processed using Google's Gemini 1.5 model. While we strive to ensure accuracy, no guarantees are made regarding the correctness, completeness, or reliability of the data produced. This application and its creator do not assume responsibility for any errors, omissions, or inaccuracies in the results generated. The user should verify the information independently before making any decisions based on the provided output. In addition, as this application works using a Google AI API-KEY, the developer reserves the right to remove the KEY if the costs of the API change or if the developer deems it appropriate. By using this application, you acknowledge and agree to these terms."""
+
+    footer_label = tk.Label(
+        footer_frame,
+        text=disclaimer_text,
+        font=("Helvetica", 10),
+        bg=BG_COLOR,
+        fg="#ffffff",  # White text for contrast
+        wraplength=root.winfo_screenwidth() - 40,  # Wrap text for readability
+        justify="center",
+        padx=10,
+        pady=5
+    )
+    footer_label.pack()
 
     root.mainloop()
 
