@@ -1,3 +1,4 @@
+import threading
 from PyPDF2 import PdfReader
 import re
 import os
@@ -16,16 +17,16 @@ def configure_api():
     """
     Configures the API key for Google Generative AI.
     """
-    GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-    genai.configure(api_key=GOOGLE_API_KEY)
+    google_api_key = os.getenv('GOOGLE_API_KEY')
+    genai.configure(api_key=google_api_key)
 
 # Format text to Markdown
 def format_markdown(text):
     """
     Formats text into Markdown style.
     """
-    text = text.replace('•', '  *')
-    return textwrap.indent(text, '> ', predicate=lambda _: True)
+    formatted_text = text.replace('•', '  *')
+    return textwrap.indent(formatted_text, '> ', predicate=lambda _: True)
 
 # Read PDF content
 def read_pdf_content(file_path):
@@ -33,11 +34,11 @@ def read_pdf_content(file_path):
     Reads and extracts text content from a PDF file.
     """
     try:
-        content = ""
+        pdf_text = ""
         with fitz.open(file_path) as pdf:
             for page in pdf:
-                content += page.get_text()
-        return content
+                pdf_text += page.get_text()
+        return pdf_text
     except Exception as error:
         messagebox.showerror("Error", f"Error reading PDF file: {error}")
         return ""
@@ -82,8 +83,8 @@ def split_text_into_chunks(text):
     """
     text_splitter = CharacterTextSplitter(
         separator="\n",
-        chunk_size=8800,
-        chunk_overlap=200,
+        chunk_size=7000,
+        chunk_overlap=2000,
         length_function=len
     )
     return text_splitter.split_text(text)
@@ -147,16 +148,18 @@ def extract_data_from_response(response):
 
 # Extract metadata from PDF
 def parse_pdf_date(pdf_date):
-    """Converts PDF metadata date to a readable format."""
+    """
+    Parses and formats PDF metadata date into a readable format.
+    """
     match = re.match(r"D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", pdf_date)
     if match:
         return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
-    return "Fecha no disponible"
+    return "Date not available"
 
 # Save details to JSON file
 def save_to_json(metadata, response_data, filename):
     """
-    Guarda los metadatos y datos de respuesta en un archivo JSON.
+    Saves extracted metadata and response data to a JSON file.
     """
     os.makedirs("results", exist_ok=True)
     output_path = os.path.join("results", f"{filename}.json")
@@ -169,34 +172,53 @@ def save_to_json(metadata, response_data, filename):
     print(f"Data saved to {output_path}")
 
 
-def extract_metadata(filepath):
+def extract_metadata(file_path):
     """
-    Extracts metadata from a PDF file.
+    Extracts metadata from a PDF file such as author, creation date, and modification date.
+    Handles invalid or unsupported metadata values gracefully.
     """
-    details = {"filename": os.path.basename(filepath), "author": "No disponible", "created_at": "N/A", "modified_at": "N/A"}
+    metadata_details = {
+        "filename": os.path.basename(file_path),
+        "author": "Not available",
+        "created_at": "Not available",
+        "modified_at": "Not available"
+    }
+
     try:
-        reader = PdfReader(filepath)
+        reader = PdfReader(file_path)
         metadata = reader.metadata
+
         if metadata:
-            details["author"] = metadata.get('/Author', "No disponible")
-            details["created_at"] = parse_pdf_date(metadata.get('/CreationDate', ""))
-            details["modified_at"] = parse_pdf_date(metadata.get('/ModDate', ""))
-    except Exception as e:
-        print(f"Error al leer PDF: {e}")
-    return details
+            # Safely extract and validate metadata fields
+            author = metadata.get('/Author')
+            created_date = metadata.get('/CreationDate')
+            modified_date = metadata.get('/ModDate')
+
+            metadata_details["author"] = author if isinstance(author, str) else "Not available"
+            metadata_details["created_at"] = (
+                parse_pdf_date(created_date) if isinstance(created_date, str) else "Not available"
+            )
+            metadata_details["modified_at"] = (
+                parse_pdf_date(modified_date) if isinstance(modified_date, str) else "Not available"
+            )
+
+    except Exception as error:
+        print(f"Error reading PDF metadata: {error}")
+
+    return metadata_details
 
 def extract_text(filepath):
     """
     Extracts full text content from a PDF file.
     """
-    text = ""
+    pdf_text = ""
     try:
         reader = PdfReader(filepath)
         for page in reader.pages:
-            text += page.extract_text() or ""
-    except Exception as e:
-        print(f"Error al extraer texto del PDF: {e}")
-    return text
+            pdf_text += page.extract_text() or ""
+    except Exception as error:
+        print(f"Error reading PDF metadata: {error}")
+    return pdf_text
 
 # GUI Application to process and manage files
 def main_gui():
@@ -208,36 +230,57 @@ def main_gui():
             shutil.copy(file_path, new_file_path)
             load_file_table()
 
+    global details_text
+    details_text = None
+
     def load_file_table():
-        for row in tree.get_children():
-            tree.delete(row)
+        """
+        Load the list of files into Treeview and force the initial selection.
+        """
+        for widget in left_frame.winfo_children():
+            widget.destroy()
+
+        file_table_columns = ("#", "File Name")
+        tree = ttk.Treeview(left_frame, columns=file_table_columns, show="headings")
+        tree.column("#", width=30, anchor="center")
+        tree.heading("#", text="#")
+        tree.column("File Name", anchor="w", stretch=True)
+        tree.heading("File Name", text="File Name", anchor="w")
+        tree.pack(expand=True, fill="both")
+
         files = os.listdir("uploads")
         for index, file in enumerate(files):
             tree.insert("", "end", values=(index + 1, file))
 
-        # Asociar evento para cargar detalles JSON automáticamente
+        # Bind selection event to load_json_details
         tree.bind("<<TreeviewSelect>>", load_json_details)
+
+        if files:  # Automatically select the first file
+            first_item = tree.get_children()[0]
+            tree.selection_set(first_item)
+            tree.event_generate("<<TreeviewSelect>>")
 
     def load_json_details(event):
         """
         Automatically loads JSON details of a selected file
         and displays them in a custom format.
         """
+        global details_text
+        if details_text is None:
+            return
+
         selected_item = tree.selection()
         if selected_item:
             file_name = tree.item(selected_item, 'values')[1]
-            base_name, _ = os.path.splitext(file_name)  # Quitar la extensión
+            base_name, _ = os.path.splitext(file_name)
             json_path = os.path.join("results", f"{base_name}.json")
 
-            # Limpiar el widget de texto
+            details_text.config(state="normal")
             details_text.delete("1.0", tk.END)
 
-            # Cargar y mostrar el JSON si existe
             if os.path.exists(json_path):
                 with open(json_path, 'r', encoding='utf-8') as json_file:
                     data = json.load(json_file)
-
-                    # Formatear los metadatos y la respuesta
                     metadata = data.get("Metadata", {})
                     response = data.get("Response", {})
 
@@ -251,15 +294,11 @@ def main_gui():
                         f"Awarded Value: {response.get('Awarded Value', 'N/A')}\n"
                         f"Contract Administrator: {response.get('Contract Administrator', 'N/A')}\n"
                     )
-
-                    # Añadir errores si existen
-                    if "Errors" in response:
-                        formatted_output += f"Errors: {response.get('Errors')}\n"
-
-                    # Mostrar el resultado formateado
                     details_text.insert(tk.END, formatted_output)
             else:
                 details_text.insert(tk.END, f"No JSON file found for {file_name}.")
+
+            details_text.config(state="disabled")
 
     def download_file():
         selected_item = tree.selection()
@@ -307,11 +346,102 @@ def main_gui():
 
         details_text.insert(tk.END, formatted_result)
 
-        print("metadata:", metadata)
-        print("response:", response)
-        print("result:", result)
-        # Save to JSON
         save_to_json(metadata, result, os.path.splitext(file_name)[0])
+
+    def enable_json_editing():
+        """
+        Enables editing of the text in the details widget.
+        """
+        details_text.config(state="normal")  # Allows you to edit the text widget
+        messagebox.showinfo("Edit Mode", "You can now edit the JSON content. Don't forget to save your changes!")
+
+    def refresh_application():
+        """
+        Refresh the application interface:
+        - Restart Treeview.
+        - Clean and update File Details.
+        """
+        load_file_table()
+
+        # Clean the detail area
+        details_text.delete("1.0", tk.END)
+        details_text.config(state="disabled")
+
+    def save_json_edits():
+        """
+        Saves edits made manually in the text widget back to the JSON file.
+        """
+
+        def save_json_task():
+            selected_item = tree.selection()
+            if selected_item:
+                file_name = tree.item(selected_item, 'values')[1]
+                base_name, _ = os.path.splitext(file_name)
+                json_path = os.path.join("results", f"{base_name}.json")
+
+                try:
+                    edited_content = details_text.get("1.0", tk.END).strip()
+
+                    lines = edited_content.split("\n")
+                    metadata = {
+                        "filename": lines[0].split(": ", 1)[1],
+                        "author": lines[1].split(": ", 1)[1],
+                        "created_at": lines[2].split(": ", 1)[1],
+                        "modified_at": lines[3].split(": ", 1)[1],
+                    }
+                    response = {
+                        "Provider": lines[5].split(": ", 1)[1],
+                        "RUC": lines[6].split(": ", 1)[1],
+                        "Awarded Value": lines[7].split(": ", 1)[1],
+                        "Contract Administrator": lines[8].split(": ", 1)[1],
+                    }
+
+                    updated_data = {"Metadata": metadata, "Response": response}
+
+                    with open(json_path, 'w', encoding='utf-8') as json_file:
+                        json.dump(updated_data, json_file, ensure_ascii=False, indent=4)
+
+                    root.after(0, lambda: messagebox.showinfo("Success", f"JSON file saved successfully: {json_path}"))
+                    root.after(0, refresh_application)
+
+                except Exception as e:
+                    root.after(0, lambda: messagebox.showerror("Error", f"Failed to save JSON file: {str(e)}"))
+
+        # Runs the task on a secondary thread
+        threading.Thread(target=save_json_task).start()
+
+    def load_file_table():
+        """
+        Load the list of files into Treeview and force the initial selection.
+        """
+        global tree
+        for widget in left_frame.winfo_children():
+            widget.destroy()
+
+        columns = ("#", "File Name")
+        tree = ttk.Treeview(left_frame, columns=columns, show="headings")
+
+        tree.column("#", width=30, anchor="center")
+        tree.heading("#", text="#")
+
+        tree.column("File Name", anchor="w", stretch=True)
+        tree.heading("File Name", text="File Name", anchor="w")
+
+        tree.pack(expand=True, fill="both")
+
+        # Upload files to the new Treeview
+        files = os.listdir("uploads")
+        for index, file in enumerate(files):
+            tree.insert("", "end", values=(index + 1, file))
+
+        # Linking the selection event
+        tree.bind("<<TreeviewSelect>>", load_json_details)
+
+        # Force initial selection if there are files
+        if files:
+            first_item = tree.get_children()[0]  # Seleccionar el primer archivo
+            tree.selection_set(first_item)
+            tree.event_generate("<<TreeviewSelect>>")  # Forzar el evento de selección
 
     root = tk.Tk()
     root.title("PDF Management System")
@@ -328,6 +458,8 @@ def main_gui():
     tk.Button(menu_frame, text="Upload File", command=upload_file).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Download File", command=download_file).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Details", command=show_details).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Edit JSON", command=enable_json_editing).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Save JSON", command=save_json_edits).pack(side="left", padx=5, pady=5)
 
     # Main Content Frame
     content_frame = tk.Frame(root)
@@ -356,7 +488,6 @@ def main_gui():
     right_frame.grid(row=0, column=1, sticky="nsew", padx=15)
 
     tk.Label(right_frame, text="File Details:", font=("Helvetica", 12, "bold")).pack(pady=5)
-    global details_text
     details_text = tk.Text(right_frame, wrap="word")
     details_text.pack(expand=True, fill="both")
 
