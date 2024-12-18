@@ -439,38 +439,50 @@ def main_gui():
 
         # Force initial selection if there are files
         if files:
-            first_item = tree.get_children()[0]  # Seleccionar el primer archivo
+            first_item = tree.get_children()[0]  # Select the first file
             tree.selection_set(first_item)
-            tree.event_generate("<<TreeviewSelect>>")  # Forzar el evento de selección
+            tree.event_generate("<<TreeviewSelect>>")  # Forcing the selection event
 
     root = tk.Tk()
     root.title("PDF Management System")
     root.state('zoomed')
 
+    # Colour palette
+    BG_COLOR = "#53a2be"  # General Background
+    FG_COLOR = "#fdfdff"  # Main text colour
+    BUTTON_BG = "#fdfdff"  # Button background
+    BUTTON_FG = "#003554"  # Button text colour
+    SELECTED_BG = "#575757"  # Background when selecting a file
+
+    # Global window configuration
+    root.configure(bg=BG_COLOR)
+
     # Title of the application
-    title_label = tk.Label(root, text="PDF Management System", font=("Helvetica", 18, "bold"))
+    title_label = tk.Label(root, text="PDF Management System", font=("Helvetica", 18, "bold"), bg=BG_COLOR, fg=FG_COLOR)
     title_label.pack(pady=10)
 
     # Menu with buttons
-    menu_frame = tk.Frame(root)
+    menu_frame = tk.Frame(root, bg=BG_COLOR)
     menu_frame.pack(fill="x", pady=5, padx=50)
 
-    tk.Button(menu_frame, text="Upload File", command=upload_file).pack(side="left", padx=5, pady=5)
-    tk.Button(menu_frame, text="Download File", command=download_file).pack(side="left", padx=5, pady=5)
-    tk.Button(menu_frame, text="Details", command=show_details).pack(side="left", padx=5, pady=5)
-    tk.Button(menu_frame, text="Edit JSON", command=enable_json_editing).pack(side="left", padx=5, pady=5)
-    tk.Button(menu_frame, text="Save JSON", command=save_json_edits).pack(side="left", padx=5, pady=5)
+    button_style = {"bg": BUTTON_BG, "fg": BUTTON_FG, "activebackground": SELECTED_BG}
+    tk.Button(menu_frame, text="Upload File", command=upload_file, **button_style).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Download File", command=download_file, **button_style).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Details", command=show_details, **button_style).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Edit JSON", command=enable_json_editing, **button_style).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Save JSON", command=save_json_edits, **button_style).pack(side="left", padx=5, pady=5)
 
     # Main Content Frame
-    content_frame = tk.Frame(root)
+    content_frame = tk.Frame(root, bg=BG_COLOR)
     content_frame.pack(expand=True, fill="both", padx=30, pady=30)
 
     # Left Frame (File Table)
-    left_frame = tk.Frame(content_frame)
+    left_frame = tk.Frame(content_frame, bg=BG_COLOR)
     left_frame.grid(row=0, column=0, sticky="nsew", padx=15)
 
-    tk.Label(left_frame, text="Uploaded Files:", font=("Helvetica", 12, "bold")).pack(pady=5)
+    tk.Label(left_frame, text="Uploaded Files:", font=("Helvetica", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(pady=5)
     columns = ("#", "File Name")
+
     global tree
     tree = ttk.Treeview(left_frame, columns=columns, show="headings")
 
@@ -484,10 +496,11 @@ def main_gui():
     load_file_table()
 
     # Right Frame (Details Text Output)
-    right_frame = tk.Frame(content_frame)
+    right_frame = tk.Frame(content_frame, bg=BG_COLOR)
     right_frame.grid(row=0, column=1, sticky="nsew", padx=15)
 
-    tk.Label(right_frame, text="File Details:", font=("Helvetica", 12, "bold")).pack(pady=5)
+    tk.Label(right_frame, text="File Details:", font=("Helvetica", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(pady=5)
+
     details_text = tk.Text(right_frame, wrap="word")
     details_text.pack(expand=True, fill="both")
 
