@@ -413,16 +413,21 @@ def main_gui():
         # Runs the task on a secondary thread
         threading.Thread(target=save_json_task).start()
 
-    def load_file_table():
+    # Modificación en la función load_file_table
+    def load_file_table(filter_text=""):
         """
-        Load the list of files into Treeview and force the initial selection.
+        Load the list of files into Treeview and apply optional filters.
         """
         global tree
         for widget in left_frame.winfo_children():
             widget.destroy()
 
+        # Crear scrollbar
+        scrollbar = ttk.Scrollbar(left_frame, orient="vertical")
+        scrollbar.pack(side="right", fill="y")
+
         columns = ("#", "File Name")
-        tree = ttk.Treeview(left_frame, columns=columns, show="headings")
+        tree = ttk.Treeview(left_frame, columns=columns, show="headings", yscrollcommand=scrollbar.set)
 
         tree.column("#", width=30, anchor="center")
         tree.heading("#", text="#")
@@ -430,21 +435,32 @@ def main_gui():
         tree.column("File Name", anchor="w", stretch=True)
         tree.heading("File Name", text="File Name", anchor="w")
 
+        scrollbar.config(command=tree.yview)  # Conectar scrollbar con el treeview
         tree.pack(expand=True, fill="both")
 
-        # Upload files to the new Treeview
         files = os.listdir("uploads")
-        for index, file in enumerate(files):
+
+        # Filtrar archivos según el texto ingresado
+        filtered_files = [file for file in files if filter_text.lower() in file.lower()]
+
+        for index, file in enumerate(filtered_files):
             tree.insert("", "end", values=(index + 1, file))
 
-        # Linking the selection event
         tree.bind("<<TreeviewSelect>>", load_json_details)
 
-        # Force initial selection if there are files
-        if files:
-            first_item = tree.get_children()[0]  # Select the first file
+        # Selección inicial si hay archivos
+        if filtered_files:
+            first_item = tree.get_children()[0]
             tree.selection_set(first_item)
-            tree.event_generate("<<TreeviewSelect>>")  # Forcing the selection event
+            tree.event_generate("<<TreeviewSelect>>")
+
+    # Nueva función para filtrar archivos
+    def filter_files():
+        """
+        Filter files based on the input text from the search bar.
+        """
+        filter_text = search_entry.get()
+        load_file_table(filter_text)
 
     root = tk.Tk()
     root.title("PDF Management System")
@@ -474,7 +490,14 @@ def main_gui():
     tk.Button(menu_frame, text="Details", command=show_details, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Edit JSON", command=enable_json_editing, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Save JSON", command=save_json_edits, **button_style).pack(side="left", padx=5, pady=5)
+    search_label = tk.Label(menu_frame, text="Search:", bg=BG_COLOR, fg=FG_COLOR, font=("Helvetica", 10))
+    search_label.pack(side="left", padx=5, pady=5)
 
+    search_entry = tk.Entry(menu_frame, width=20)
+    search_entry.pack(side="left", padx=5, pady=5)
+
+    search_button = tk.Button(menu_frame, text="Filter", command=filter_files, **button_style)
+    search_button.pack(side="left", padx=5, pady=5)
     # Main Content Frame
     content_frame = tk.Frame(root, bg=BG_COLOR)
     content_frame.pack(expand=True, fill="both", padx=30, pady=30)
