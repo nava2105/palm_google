@@ -446,7 +446,7 @@ def main_gui():
     root = tk.Tk()
     root.title("PDF Management System")
     root.state('zoomed')
-
+    root.iconbitmap("icon.ico")
     # Colour palette
     BG_COLOR = "#53a2be"  # General Background
     FG_COLOR = "#fdfdff"  # Main text colour
@@ -458,7 +458,7 @@ def main_gui():
     root.configure(bg=BG_COLOR)
 
     # Title of the application
-    title_label = tk.Label(root, text="PDF Management System", font=("Helvetica", 18, "bold"), bg=BG_COLOR, fg=FG_COLOR)
+    title_label = tk.Label(root, text="PDF Management System", font=("Helvetica", 32, "bold"), bg=BG_COLOR, fg=FG_COLOR)
     title_label.pack(pady=10)
 
     # Menu with buttons
