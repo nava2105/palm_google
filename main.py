@@ -108,7 +108,7 @@ def generate_text_embedding(text, title="Text Chunk"):
 # Process JSON response and extract data
 def extract_data_from_response(response):
     """
-    Procesa una respuesta JSON y extrae campos específicos en formato de diccionario.
+    Processes a JSON response and extracts specific fields in dictionary format.
     """
     try:
         if not response.strip():
@@ -148,7 +148,6 @@ def extract_data_from_response(response):
     except json.JSONDecodeError:
         return {"Error": "The response is not valid JSON."}
 
-
 # Extract metadata from PDF
 def parse_pdf_date(pdf_date):
     """
@@ -173,7 +172,6 @@ def save_to_json(metadata, response_data, filename):
     with open(output_path, 'w', encoding='utf-8') as json_file:
         json.dump(combined_data, json_file, ensure_ascii=False, indent=4)
     print(f"Data saved to {output_path}")
-
 
 def extract_metadata(file_path):
     """
@@ -413,7 +411,7 @@ def main_gui():
         # Runs the task on a secondary thread
         threading.Thread(target=save_json_task).start()
 
-    # Modificación en la función load_file_table
+    # Modification in the function load_file_table
     def load_file_table(filter_text=""):
         """
         Load the list of files into Treeview and apply optional filters.
@@ -454,7 +452,7 @@ def main_gui():
             tree.selection_set(first_item)
             tree.event_generate("<<TreeviewSelect>>")
 
-    # Nueva función para filtrar archivos
+    # New function to filter files
     def filter_files():
         """
         Filter files based on the input text from the search bar.
@@ -555,7 +553,6 @@ def main_gui():
     footer_label.pack()
 
     root.mainloop()
-
 
 if __name__ == "__main__":
     main_gui()
