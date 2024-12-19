@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ---APIService---
 # Configure the API Key
 def configure_api():
     """
@@ -23,14 +24,8 @@ def configure_api():
     google_api_key = os.getenv('GOOGLE_API_KEY')
     genai.configure(api_key=google_api_key)
 
-# Format text to Markdown
-def format_markdown(text):
-    """
-    Formats text into Markdown style.
-    """
-    formatted_text = text.replace('•', '  *')
-    return textwrap.indent(formatted_text, '> ', predicate=lambda _: True)
 
+# ---PDFService
 # Read PDF content
 def read_pdf_content(file_path):
     """
@@ -46,6 +41,66 @@ def read_pdf_content(file_path):
         messagebox.showerror("Error", f"Error reading PDF file: {error}")
         return ""
 
+# Split text into chunks
+def split_text_into_chunks(text):
+    """
+    Splits the input text into manageable chunks.
+    """
+    text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=7000,
+        chunk_overlap=2000,
+        length_function=len
+    )
+    return text_splitter.split_text(text)
+
+# Extract metadata from PDF
+def parse_pdf_date(pdf_date):
+    """
+    Parses and formats PDF metadata date into a readable format.
+    """
+    match = re.match(r"D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", pdf_date)
+    if match:
+        return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
+    return "Date not available"
+
+def extract_metadata(file_path):
+    """
+    Extracts metadata from a PDF file such as author, creation date, and modification date.
+    Handles invalid or unsupported metadata values gracefully.
+    """
+    metadata_details = {
+        "filename": os.path.basename(file_path),
+        "author": "Not available",
+        "created_at": "Not available",
+        "modified_at": "Not available"
+    }
+
+    try:
+        reader = PdfReader(file_path)
+        metadata = reader.metadata
+
+        if metadata:
+            # Safely extract and validate metadata fields
+            author = metadata.get('/Author')
+            created_date = metadata.get('/CreationDate')
+            modified_date = metadata.get('/ModDate')
+
+            metadata_details["author"] = author if isinstance(author, str) else "Not available"
+            metadata_details["created_at"] = (
+                parse_pdf_date(created_date) if isinstance(created_date, str) else "Not available"
+            )
+            metadata_details["modified_at"] = (
+                parse_pdf_date(modified_date) if isinstance(modified_date, str) else "Not available"
+            )
+
+    except Exception as error:
+        print(f"Error reading PDF metadata: {error}")
+
+    return metadata_details
+
+
+# ---NLPService---
 # Generate content based on embeddings
 def generate_response_from_embeddings(question, embeddings_with_chunks, model_name='gemini-1.5-flash'):
     """
@@ -79,19 +134,6 @@ def generate_response_from_embeddings(question, embeddings_with_chunks, model_na
     cleaned_response = response.text.replace("```json", "").replace("```", "").strip()
     return cleaned_response
 
-# Split text into chunks
-def split_text_into_chunks(text):
-    """
-    Splits the input text into manageable chunks.
-    """
-    text_splitter = CharacterTextSplitter(
-        separator="\n",
-        chunk_size=7000,
-        chunk_overlap=2000,
-        length_function=len
-    )
-    return text_splitter.split_text(text)
-
 # Generate embeddings for a given text
 def generate_text_embedding(text, title="Text Chunk"):
     """
@@ -105,6 +147,8 @@ def generate_text_embedding(text, title="Text Chunk"):
     )
     return result['embedding']
 
+
+# ---TextService---
 # Process JSON response and extract data
 def extract_data_from_response(response):
     """
@@ -148,16 +192,6 @@ def extract_data_from_response(response):
     except json.JSONDecodeError:
         return {"Error": "The response is not valid JSON."}
 
-# Extract metadata from PDF
-def parse_pdf_date(pdf_date):
-    """
-    Parses and formats PDF metadata date into a readable format.
-    """
-    match = re.match(r"D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", pdf_date)
-    if match:
-        return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
-    return "Date not available"
-
 # Save details to JSON file
 def save_to_json(metadata, response_data, filename):
     """
@@ -173,66 +207,21 @@ def save_to_json(metadata, response_data, filename):
         json.dump(combined_data, json_file, ensure_ascii=False, indent=4)
     print(f"Data saved to {output_path}")
 
-def extract_metadata(file_path):
-    """
-    Extracts metadata from a PDF file such as author, creation date, and modification date.
-    Handles invalid or unsupported metadata values gracefully.
-    """
-    metadata_details = {
-        "filename": os.path.basename(file_path),
-        "author": "Not available",
-        "created_at": "Not available",
-        "modified_at": "Not available"
-    }
 
-    try:
-        reader = PdfReader(file_path)
-        metadata = reader.metadata
-
-        if metadata:
-            # Safely extract and validate metadata fields
-            author = metadata.get('/Author')
-            created_date = metadata.get('/CreationDate')
-            modified_date = metadata.get('/ModDate')
-
-            metadata_details["author"] = author if isinstance(author, str) else "Not available"
-            metadata_details["created_at"] = (
-                parse_pdf_date(created_date) if isinstance(created_date, str) else "Not available"
-            )
-            metadata_details["modified_at"] = (
-                parse_pdf_date(modified_date) if isinstance(modified_date, str) else "Not available"
-            )
-
-    except Exception as error:
-        print(f"Error reading PDF metadata: {error}")
-
-    return metadata_details
-
-def extract_text(filepath):
-    """
-    Extracts full text content from a PDF file.
-    """
-    pdf_text = ""
-    try:
-        reader = PdfReader(filepath)
-        for page in reader.pages:
-            pdf_text += page.extract_text() or ""
-    except Exception as error:
-        print(f"Error reading PDF metadata: {error}")
-    return pdf_text
-
+# ---UserInterface---
 # GUI Application to process and manage files
 def main_gui():
+    # ---GUIMethods---
     def upload_file():
+        """
+        Upload a file to the folder.
+        """
         file_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
         if file_path:
             os.makedirs("uploads", exist_ok=True)
             new_file_path = os.path.join("uploads", os.path.basename(file_path))
             shutil.copy(file_path, new_file_path)
             load_file_table()
-
-    global details_text
-    details_text = None
 
     def load_file_table():
         """
@@ -263,8 +252,7 @@ def main_gui():
 
     def load_json_details(event):
         """
-        Automatically loads JSON details of a selected file
-        and displays them in a custom format.
+        Automatically loads JSON details of a selected file and displays them in a custom format.
         """
         global details_text
         if details_text is None:
@@ -302,6 +290,9 @@ def main_gui():
             details_text.config(state="disabled")
 
     def download_file():
+        """
+        Downloads the selected file.
+        """
         selected_item = tree.selection()
         if selected_item:
             file_name = tree.item(selected_item, 'values')[1]
@@ -312,6 +303,9 @@ def main_gui():
                 messagebox.showinfo("Success", f"File {file_name} downloaded successfully!")
 
     def show_details():
+        """"
+        Shows the details of the selected file.
+        """
         selected_item = tree.selection()
         if selected_item:
             file_name = tree.item(selected_item, 'values')[1]
@@ -319,6 +313,9 @@ def main_gui():
             process_pdf(file_path, file_name)
 
     def process_pdf(pdf_file_path, file_name):
+        """"
+        Processes the selected file and extracts it's metadata and the response given by gemini.
+        """
         metadata = extract_metadata(pdf_file_path)
         details_text.delete("1.0", tk.END)
         details_text.insert(tk.END, f"File Name: {metadata['filename']}\n")
@@ -372,8 +369,10 @@ def main_gui():
         """
         Saves edits made manually in the text widget back to the JSON file.
         """
-
         def save_json_task():
+            """"
+            Saves the json with the data
+            """
             selected_item = tree.selection()
             if selected_item:
                 file_name = tree.item(selected_item, 'values')[1]
@@ -411,7 +410,6 @@ def main_gui():
         # Runs the task on a secondary thread
         threading.Thread(target=save_json_task).start()
 
-    # Modification in the function load_file_table
     def load_file_table(filter_text=""):
         """
         Load the list of files into Treeview and apply optional filters.
@@ -420,7 +418,6 @@ def main_gui():
         for widget in left_frame.winfo_children():
             widget.destroy()
 
-        # Crear scrollbar
         scrollbar = ttk.Scrollbar(left_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
 
@@ -433,12 +430,12 @@ def main_gui():
         tree.column("File Name", anchor="w", stretch=True)
         tree.heading("File Name", text="File Name", anchor="w")
 
-        scrollbar.config(command=tree.yview)  # Conectar scrollbar con el treeview
+        scrollbar.config(command=tree.yview)
         tree.pack(expand=True, fill="both")
 
         files = os.listdir("uploads")
 
-        # Filtrar archivos según el texto ingresado
+        # Filter files according to the text entered
         filtered_files = [file for file in files if filter_text.lower() in file.lower()]
 
         for index, file in enumerate(filtered_files):
@@ -446,13 +443,12 @@ def main_gui():
 
         tree.bind("<<TreeviewSelect>>", load_json_details)
 
-        # Selección inicial si hay archivos
+        # Initial selection if there are files
         if filtered_files:
             first_item = tree.get_children()[0]
             tree.selection_set(first_item)
             tree.event_generate("<<TreeviewSelect>>")
 
-    # New function to filter files
     def filter_files():
         """
         Filter files based on the input text from the search bar.
@@ -464,12 +460,16 @@ def main_gui():
     root.title("PDF Management System")
     root.state('zoomed')
     root.iconbitmap("icon.ico")
+
     # Colour palette
     BG_COLOR = "#53a2be"  # General Background
     FG_COLOR = "#fdfdff"  # Main text colour
     BUTTON_BG = "#fdfdff"  # Button background
     BUTTON_FG = "#003554"  # Button text colour
     SELECTED_BG = "#575757"  # Background when selecting a file
+
+    global details_text
+    details_text = None
 
     # Global window configuration
     root.configure(bg=BG_COLOR)
