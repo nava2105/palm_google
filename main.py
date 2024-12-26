@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import shutil
 from dotenv import load_dotenv
+from PIL import Image, ImageTk
 
 load_dotenv()
 
@@ -273,15 +274,77 @@ def main_gui():
                 shutil.copy(file_path, os.path.join(destination, file_name))
                 messagebox.showinfo("Success", f"File {file_name} downloaded successfully!")
 
+    from PIL import Image, ImageTk
+
     def show_details():
-        """"
-        Shows the details of the selected file.
         """
-        selected_item = tree.selection()
-        if selected_item:
-            file_name = tree.item(selected_item, 'values')[1]
-            file_path = os.path.join("uploads", file_name)
-            process_pdf(file_path, file_name)
+        Shows the details of the selected file with a fullscreen semi-transparent loading screen displaying an animated GIF.
+        """
+        user_response = messagebox.askyesno(
+            "See details",
+            "You will ask Gemini IA to search for the information inside the PDF. Every change made manually is going to be lost! Do you want to proceed?"
+        )
+
+        if user_response:  # Proceed only if the user clicks 'Yes'
+            selected_item = tree.selection()
+            if selected_item:
+                file_name = tree.item(selected_item, 'values')[1]
+                file_path = os.path.join("uploads", file_name)
+
+                # Create a fullscreen semi-transparent loading screen
+                loading_screen = tk.Toplevel(root)
+                loading_screen.attributes("-fullscreen", True)  # Make it fullscreen
+                loading_screen.attributes("-alpha", 0.8)  # Set transparency
+                loading_screen.configure(bg="black")  # Background color
+
+                # Load the GIF
+                gif_path = "loading.gif"  # Path to your loading GIF
+                gif_image = Image.open(gif_path)
+                gif_frames = []
+                try:
+                    while True:
+                        gif_frames.append(ImageTk.PhotoImage(gif_image.copy().convert("RGBA")))
+                        gif_image.seek(len(gif_frames))  # Move to the next frame
+                except EOFError:
+                    pass  # End of GIF frames
+
+                # Create a label to display the GIF
+                gif_label = tk.Label(loading_screen, bg="black")
+                gif_label.pack(expand=True)
+
+                def animate_gif(index=0):
+                    """Animate the GIF frame by frame."""
+                    gif_label.configure(image=gif_frames[index])
+                    next_index = (index + 1) % len(gif_frames)
+                    loading_screen.after(100, animate_gif, next_index)  # Adjust delay (100ms) based on your GIF's speed
+
+                # Start the animation
+                animate_gif()
+
+                # Add a message below the GIF
+                message_label = tk.Label(
+                    loading_screen,
+                    text="Processing, please wait...",
+                    font=("Helvetica", 24),
+                    bg="black",
+                    fg="white"
+                )
+                message_label.pack(pady=20)
+
+                loading_screen.transient(root)  # Keep it on top of the main window
+                loading_screen.grab_set()  # Disable interactions with the main window
+
+                def process_task():
+                    """Run the PDF processing in a separate thread."""
+                    try:
+                        process_pdf(file_path, file_name)
+                    finally:
+                        loading_screen.destroy()  # Close the loading screen once done
+
+                # Run the processing in a separate thread
+                threading.Thread(target=process_task, daemon=True).start()
+        else:
+            messagebox.showinfo("Action Cancelled", "No changes were made.")
 
     def process_pdf(pdf_file_path, file_name):
         """"
