@@ -2,7 +2,6 @@ import threading
 from PyPDF2 import PdfReader
 import re
 import os
-import textwrap
 import google.generativeai as genai
 import fitz
 from langchain.text_splitter import CharacterTextSplitter
@@ -159,13 +158,12 @@ def extract_data_from_response(response):
             return {"Error": "Response is empty or invalid."}
 
         data = json.loads(response)
-        errors = []
         provider = data.get('proveedor') or "could not find the value"
         ruc = data.get('ruc') or "could not find the value"
         awarded_value = data.get('valor_adjudicado') or "could not find the value"
         administrator = data.get('administrador') or "could not find the value"
 
-        # Construir el resultado como diccionario
+        # Build the result bared on the dictionary
         result = {
             "Provider": provider,
             "RUC": ruc,
@@ -173,7 +171,7 @@ def extract_data_from_response(response):
             "Contract Administrator": administrator,
         }
 
-        # Añadir errores si existen
+        # Add errors if exist
         if "could not find the value" in [provider, ruc, awarded_value, administrator]:
             errors_list = []
             if provider == "could not find the value":
@@ -222,33 +220,6 @@ def main_gui():
             new_file_path = os.path.join("uploads", os.path.basename(file_path))
             shutil.copy(file_path, new_file_path)
             load_file_table()
-
-    def load_file_table():
-        """
-        Load the list of files into Treeview and force the initial selection.
-        """
-        for widget in left_frame.winfo_children():
-            widget.destroy()
-
-        file_table_columns = ("#", "File Name")
-        tree = ttk.Treeview(left_frame, columns=file_table_columns, show="headings")
-        tree.column("#", width=30, anchor="center")
-        tree.heading("#", text="#")
-        tree.column("File Name", anchor="w", stretch=True)
-        tree.heading("File Name", text="File Name", anchor="w")
-        tree.pack(expand=True, fill="both")
-
-        files = os.listdir("uploads")
-        for index, file in enumerate(files):
-            tree.insert("", "end", values=(index + 1, file))
-
-        # Bind selection event to load_json_details
-        tree.bind("<<TreeviewSelect>>", load_json_details)
-
-        if files:  # Automatically select the first file
-            first_item = tree.get_children()[0]
-            tree.selection_set(first_item)
-            tree.event_generate("<<TreeviewSelect>>")
 
     def load_json_details(event):
         """
@@ -348,7 +319,7 @@ def main_gui():
 
     def enable_json_editing():
         """
-        Enables editing of the text in the details widget.
+        Enables editing of the text in the detail's widget.
         """
         details_text.config(state="normal")  # Allows you to edit the text widget
         messagebox.showinfo("Edit Mode", "You can now edit the JSON content. Don't forget to save your changes!")
