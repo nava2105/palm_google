@@ -11,7 +11,6 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import shutil
 from dotenv import load_dotenv
-from PIL import Image, ImageTk
 
 load_dotenv()
 
