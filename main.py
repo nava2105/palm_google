@@ -1,20 +1,27 @@
-import threading
-from PyPDF2 import PdfReader
-import re
+# ---Imports---
+# Standard library imports
 import os
-import google.generativeai as genai
-import fitz
-from langchain.text_splitter import CharacterTextSplitter
-import numpy as np
+import re
 import json
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 import shutil
+import threading
 from dotenv import load_dotenv
 
-load_dotenv()
+# Third-party library imports
+import numpy as np
+import fitz  # PyMuPDF
+from PyPDF2 import PdfReader
+from langchain.text_splitter import CharacterTextSplitter
+import google.generativeai as genai
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+from PIL import Image, ImageTk
+
 
 # ---APIService---
+# Load the environment variables
+load_dotenv()
+
 # Configure the API Key
 def configure_api():
     """
@@ -24,7 +31,7 @@ def configure_api():
     genai.configure(api_key=google_api_key)
 
 
-# ---PDFService
+# ---PDFService---
 # Read PDF content
 def read_pdf_content(file_path):
     """
@@ -310,8 +317,6 @@ def main_gui():
             if destination:
                 shutil.copy(file_path, os.path.join(destination, file_name))
                 messagebox.showinfo("Success", f"File {file_name} downloaded successfully!")
-
-    from PIL import Image, ImageTk
 
     def show_details():
         """
@@ -659,7 +664,11 @@ def main_gui():
 
     root.mainloop()
 
+
+# ---Main method to call the user interface---
 if __name__ == "__main__":
     main_gui()
 
-# Find the members of the technical commission
+
+# ---Pending functions---
+# Find the members of the technical commission in the star resolution
