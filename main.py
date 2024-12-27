@@ -149,7 +149,7 @@ def generate_text_embedding(text, title="Text Chunk"):
 
 # ---TextService---
 # Process JSON response and extract data
-def extract_data_from_response(response):
+def extract_data_from_response(response, document_type):
     """
     Processes a JSON response and extracts specific fields in dictionary format.
     """
@@ -158,45 +158,48 @@ def extract_data_from_response(response):
             return {"Error": "Response is empty or invalid."}
 
         data = json.loads(response)
-        provider = data.get('proveedor') or "could not find the value"
-        ruc = data.get('ruc') or "could not find the value"
-        awarded_value = data.get('valor_adjudicado') or "could not find the value"
-        administrator = data.get('administrador') or "could not find the value"
 
-        # Build the result bared on the dictionary
-        result = {
-            "Provider": provider,
-            "RUC": ruc,
-            "Awarded Value": awarded_value,
-            "Contract Administrator": administrator,
-        }
-
-        # Add errors if exist
-        if "could not find the value" in [provider, ruc, awarded_value, administrator]:
-            errors_list = []
-            if provider == "could not find the value":
-                errors_list.append("Provider: could not find the value")
-            if ruc == "could not find the value":
-                errors_list.append("RUC: could not find the value")
-            if awarded_value == "could not find the value":
-                errors_list.append("Awarded Value: could not find the value")
-            if administrator == "could not find the value":
-                errors_list.append("Contract Administrator: could not find the value")
-
-            result["Errors"] = "\n".join(errors_list)
-
-        return result
+        if document_type == "Adjudications Resolution":
+            provider = data.get('proveedor') or "could not find the value"
+            ruc = data.get('ruc') or "could not find the value"
+            awarded_value = data.get('valor_adjudicado') or "could not find the value"
+            administrator = data.get('administrador') or "could not find the value"
+            # Build the result bared on the dictionary
+            result = {
+                "Provider": provider,
+                "RUC": ruc,
+                "Awarded Value": awarded_value,
+                "Contract Administrator": administrator,
+            }
+            return result
+        elif document_type == "Start Resolution":
+            process_code = data.get('codigo') or "could not find the value"
+            object_of_aquisition = data.get('objeto') or "could not find the value"
+            initial_or_reference_budget = data.get('presupuesto') or "could not find the value"
+            # Build the result bared on the dictionary
+            result = {
+                "Code": process_code,
+                "Object": object_of_aquisition,
+                "Budget": initial_or_reference_budget,
+            }
+            return result
 
     except json.JSONDecodeError:
         return {"Error": "The response is not valid JSON."}
 
 # Save details to JSON file
-def save_to_json(metadata, response_data, filename):
+def save_to_json(metadata, response_data, filename, document_type):
     """
     Saves extracted metadata and response data to a JSON file.
     """
-    os.makedirs("results", exist_ok=True)
-    output_path = os.path.join("results", f"{filename}.json")
+
+    if document_type == "Adjudications Resolution":
+        os.makedirs("results_adjudication", exist_ok=True)
+        output_path = os.path.join("results_adjudication", f"{filename}.json")
+    else:
+        os.makedirs("results_start", exist_ok=True)
+        output_path = os.path.join("results_start", f"{filename}.json")
+
     combined_data = {
         "Metadata": metadata,
         "Response": response_data
@@ -216,8 +219,13 @@ def main_gui():
         """
         file_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
         if file_path:
-            os.makedirs("uploads", exist_ok=True)
-            new_file_path = os.path.join("uploads", os.path.basename(file_path))
+            selected_type = document_type.get()
+            if selected_type == "Adjudications Resolution":
+                os.makedirs("uploads_adjudication", exist_ok=True)
+                new_file_path = os.path.join("uploads_adjudication", os.path.basename(file_path))
+            else:
+                os.makedirs("uploads_start", exist_ok=True)
+                new_file_path = os.path.join("uploads_start", os.path.basename(file_path))
             shutil.copy(file_path, new_file_path)
             load_file_table()
 
@@ -233,7 +241,11 @@ def main_gui():
         if selected_item:
             file_name = tree.item(selected_item, 'values')[1]
             base_name, _ = os.path.splitext(file_name)
-            json_path = os.path.join("results", f"{base_name}.json")
+            selected_type = document_type.get()
+            if selected_type == "Adjudications Resolution":
+                json_path = os.path.join("results_adjudication", f"{base_name}.json")
+            else:
+                json_path = os.path.join("results_start", f"{base_name}.json")
 
             details_text.config(state="normal")
             details_text.delete("1.0", tk.END)
@@ -244,16 +256,29 @@ def main_gui():
                     metadata = data.get("Metadata", {})
                     response = data.get("Response", {})
 
-                    formatted_output = (
-                        f"File Name: {metadata.get('filename', 'N/A')}\n"
-                        f"Author: {metadata.get('author', 'N/A')}\n"
-                        f"Created At: {metadata.get('created_at', 'N/A')}\n"
-                        f"Modified At: {metadata.get('modified_at', 'N/A')}\n\n"
-                        f"Provider: {response.get('Provider', 'N/A')}\n"
-                        f"RUC: {response.get('RUC', 'N/A')}\n"
-                        f"Awarded Value: {response.get('Awarded Value', 'N/A')}\n"
-                        f"Contract Administrator: {response.get('Contract Administrator', 'N/A')}\n"
-                    )
+                    selected_type = document_type.get()
+                    if selected_type == "Adjudications Resolution":
+                        formatted_output = (
+                            f"File Name: {metadata.get('filename', 'N/A')}\n"
+                            f"Author: {metadata.get('author', 'N/A')}\n"
+                            f"Created At: {metadata.get('created_at', 'N/A')}\n"
+                            f"Modified At: {metadata.get('modified_at', 'N/A')}\n\n"
+                            f"Provider: {response.get('Provider', 'N/A')}\n"
+                            f"RUC: {response.get('RUC', 'N/A')}\n"
+                            f"Awarded Value: {response.get('Awarded Value', 'N/A')}\n"
+                            f"Contract Administrator: {response.get('Contract Administrator', 'N/A')}\n"
+                        )
+                    else:
+                        formatted_output = (
+                            f"File Name: {metadata.get('filename', 'N/A')}\n"
+                            f"Author: {metadata.get('author', 'N/A')}\n"
+                            f"Created At: {metadata.get('created_at', 'N/A')}\n"
+                            f"Modified At: {metadata.get('modified_at', 'N/A')}\n\n"
+                            f"Code: {response.get('Code', 'N/A')}\n"
+                            f"Object: {response.get('Object', 'N/A')}\n"
+                            f"Budget: {response.get('Budget', 'N/A')}\n"
+                        )
+
                     details_text.insert(tk.END, formatted_output)
             else:
                 details_text.insert(tk.END, f"No JSON file found for {file_name}.")
@@ -267,7 +292,12 @@ def main_gui():
         selected_item = tree.selection()
         if selected_item:
             file_name = tree.item(selected_item, 'values')[1]
-            file_path = os.path.join("uploads", file_name)
+            selected_type = document_type.get()
+            if selected_type == "Adjudications Resolution":
+                file_path = os.path.join("uploads_adjudication", file_name)
+            else:
+                file_path = os.path.join("uploads_start", file_name)
+
             destination = filedialog.askdirectory()
             if destination:
                 shutil.copy(file_path, os.path.join(destination, file_name))
@@ -288,7 +318,12 @@ def main_gui():
             selected_item = tree.selection()
             if selected_item:
                 file_name = tree.item(selected_item, 'values')[1]
-                file_path = os.path.join("uploads", file_name)
+
+                selected_type = document_type.get()
+                if selected_type == "Adjudications Resolution":
+                    file_path = os.path.join("uploads_adjudication", file_name)
+                else:
+                    file_path = os.path.join("uploads_start", file_name)
 
                 # Create a fullscreen semi-transparent loading screen
                 loading_screen = tk.Toplevel(root)
@@ -364,11 +399,19 @@ def main_gui():
         chunks = split_text_into_chunks(pdf_content)
         embeddings_with_chunks = [(chunk, generate_text_embedding(chunk)) for chunk in chunks]
 
-        question = """To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:
-        {proveedor: provider_name, ruc: provider_ruc, valor_adjudicado: awarded_value, administrador: contract_administrator}
-        without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."""
+        # Choose prompt based on document type
+        selected_type = document_type.get()
+        if selected_type == "Adjudications Resolution":
+            question = """To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:
+            {proveedor: provider_name, ruc: provider_ruc, valor_adjudicado: awarded_value, administrador: contract_administrator}
+            without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."""
+        else:
+            question = """what is the process code, what is the object of acquisition and what is the initial or reference budget, if you are not sure, send any value empty)? The response must be given in the format:
+            {codigo: process_code, objeto: object_of_aquisition, presupuesto: budget}
+            without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response.
+            """
         response = generate_response_from_embeddings(question, embeddings_with_chunks)
-        result = extract_data_from_response(response)
+        result = extract_data_from_response(response, selected_type)
         # Format 'result' to be readable if it is a dictionary
         if isinstance(result, dict):
             formatted_result = "\n".join([f"{key}: {value}" for key, value in result.items()])
@@ -377,7 +420,7 @@ def main_gui():
 
         details_text.insert(tk.END, formatted_result)
 
-        save_to_json(metadata, result, os.path.splitext(file_name)[0])
+        save_to_json(metadata, result, os.path.splitext(file_name)[0], selected_type)
 
     def enable_json_editing():
         """
@@ -410,7 +453,11 @@ def main_gui():
             if selected_item:
                 file_name = tree.item(selected_item, 'values')[1]
                 base_name, _ = os.path.splitext(file_name)
-                json_path = os.path.join("results", f"{base_name}.json")
+                selected_type = document_type.get()
+                if selected_type == "Adjudications Resolution":
+                    json_path = os.path.join("results_adjudication", f"{base_name}.json")
+                else:
+                    json_path = os.path.join("results_start", f"{base_name}.json")
 
                 try:
                     edited_content = details_text.get("1.0", tk.END).strip()
@@ -465,8 +512,12 @@ def main_gui():
 
         scrollbar.config(command=tree.yview)
         tree.pack(expand=True, fill="both")
+        selected_type = document_type.get()
 
-        files = os.listdir("uploads")
+        if selected_type == "Adjudications Resolution":
+            files = os.listdir("uploads_adjudication")
+        else:
+            files = os.listdir("uploads_start")
 
         # Filter files according to the text entered
         filtered_files = [file for file in files if filter_text.lower() in file.lower()]
@@ -516,19 +567,33 @@ def main_gui():
     menu_frame.pack(fill="x", pady=5, padx=50)
 
     button_style = {"bg": BUTTON_BG, "fg": BUTTON_FG, "activebackground": SELECTED_BG}
+    search_button = tk.Button(menu_frame, text="Filter", command=filter_files, **button_style)
+    search_button.pack(side="right", padx=5, pady=5)
+
+    search_entry = tk.Entry(menu_frame, width=50)
+    search_entry.pack(side="right", padx=5, pady=5)
+
+    search_label = tk.Label(menu_frame, text="Search:", bg=BG_COLOR, fg=FG_COLOR, font=("Helvetica", 10))
+    search_label.pack(side="right", padx=5, pady=5)
+
+    document_type = tk.StringVar()
+    document_type_dropdown = ttk.Combobox(
+        menu_frame, textvariable=document_type, values=["Adjudications Resolution", "Start Resolution"],
+    )
+    document_type_label = tk.Label(menu_frame, text="Document Type:", bg=BG_COLOR, fg=FG_COLOR)
+    document_type_label.pack(side="left", padx=5)
+
+    document_type_dropdown.pack(side="left", padx=5)
+    document_type_dropdown.current(0)  # Default selection
+
+    tk.Label(menu_frame, bg=BG_COLOR).pack(side="left", padx=50)
+
     tk.Button(menu_frame, text="Upload File", command=upload_file, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Download File", command=download_file, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Details", command=show_details, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Edit JSON", command=enable_json_editing, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Save JSON", command=save_json_edits, **button_style).pack(side="left", padx=5, pady=5)
-    search_label = tk.Label(menu_frame, text="Search:", bg=BG_COLOR, fg=FG_COLOR, font=("Helvetica", 10))
-    search_label.pack(side="left", padx=5, pady=5)
 
-    search_entry = tk.Entry(menu_frame, width=20)
-    search_entry.pack(side="left", padx=5, pady=5)
-
-    search_button = tk.Button(menu_frame, text="Filter", command=filter_files, **button_style)
-    search_button.pack(side="left", padx=5, pady=5)
     # Main Content Frame
     content_frame = tk.Frame(root, bg=BG_COLOR)
     content_frame.pack(expand=True, fill="both", padx=30, pady=30)
