@@ -174,12 +174,12 @@ def extract_data_from_response(response, document_type):
             return result
         elif document_type == "Start Resolution":
             process_code = data.get('codigo') or "could not find the value"
-            object_of_aquisition = data.get('objeto') or "could not find the value"
+            object_of_acquisition = data.get('objeto') or "could not find the value"
             initial_or_reference_budget = data.get('presupuesto') or "could not find the value"
             # Build the result bared on the dictionary
             result = {
                 "Code": process_code,
-                "Object": object_of_aquisition,
+                "Object": object_of_acquisition,
                 "Budget": initial_or_reference_budget,
             }
             return result
@@ -229,6 +229,17 @@ def main_gui():
             shutil.copy(file_path, new_file_path)
             load_file_table()
 
+    def get_json_path(selected_item, tree, document_type):
+        """
+        Generates the JSON path based on the selected item and document type.
+        """
+        file_name = tree.item(selected_item, 'values')[1]
+        base_name, _ = os.path.splitext(file_name)
+        if document_type == "Adjudications Resolution":
+            return os.path.join("results_adjudication", f"{base_name}.json")
+        else:
+            return os.path.join("results_start", f"{base_name}.json")
+
     def load_json_details(event):
         """
         Automatically loads JSON details of a selected file and displays them in a custom format.
@@ -242,10 +253,7 @@ def main_gui():
             file_name = tree.item(selected_item, 'values')[1]
             base_name, _ = os.path.splitext(file_name)
             selected_type = document_type.get()
-            if selected_type == "Adjudications Resolution":
-                json_path = os.path.join("results_adjudication", f"{base_name}.json")
-            else:
-                json_path = os.path.join("results_start", f"{base_name}.json")
+            json_path = get_json_path(selected_item, tree, document_type.get())
 
             details_text.config(state="normal")
             details_text.delete("1.0", tk.END)
@@ -407,7 +415,7 @@ def main_gui():
             without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."""
         else:
             question = """what is the process code, what is the object of acquisition and what is the initial or reference budget, if you are not sure, send any value empty)? The response must be given in the format:
-            {codigo: process_code, objeto: object_of_aquisition, presupuesto: budget}
+            {codigo: process_code, objeto: object_of_acquisition, presupuesto: budget}
             without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response.
             """
         response = generate_response_from_embeddings(question, embeddings_with_chunks)
@@ -454,10 +462,7 @@ def main_gui():
                 file_name = tree.item(selected_item, 'values')[1]
                 base_name, _ = os.path.splitext(file_name)
                 selected_type = document_type.get()
-                if selected_type == "Adjudications Resolution":
-                    json_path = os.path.join("results_adjudication", f"{base_name}.json")
-                else:
-                    json_path = os.path.join("results_start", f"{base_name}.json")
+                json_path = get_json_path(selected_item, tree, document_type.get())
 
                 try:
                     edited_content = details_text.get("1.0", tk.END).strip()
@@ -656,3 +661,5 @@ def main_gui():
 
 if __name__ == "__main__":
     main_gui()
+
+# Find the members of the technical commission
