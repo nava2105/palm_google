@@ -586,6 +586,8 @@ def main_gui():
     document_type_dropdown.pack(side="left", padx=5)
     document_type_dropdown.current(0)  # Default selection
 
+    document_type.trace_add("write", lambda *args: load_file_table(filter_text=""))  # Automatically refresh the file table with an empty filter
+
     tk.Label(menu_frame, bg=BG_COLOR).pack(side="left", padx=50)
 
     tk.Button(menu_frame, text="Upload File", command=upload_file, **button_style).pack(side="left", padx=5, pady=5)
