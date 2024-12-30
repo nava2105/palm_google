@@ -1,4 +1,4 @@
-# PDF Processor 
+# palm_google
 
 ## Table of Contents
 1. [General Info](#general-info)
@@ -10,7 +10,7 @@
 ***
 This project is a Python-based **PDF Management System** that allows users to:
 - Upload and process PDF files to extract metadata and content.
-- Generate embeddings using **Google Generative AI** to identify contract details such as provider, RUC, awarded value, and contract administrator.
+- Generate embeddings using **Google Generative AI** to identify contract details such as provider, RUC, awarded value, and contract administrator if the uploaded file is an adjudication resolution, else if it is a star resolution, it extracts the members of the technical committee.
 - Display extracted details in a GUI-based application using **Tkinter**.
 - Edit and save JSON data containing metadata and responses.
 
@@ -95,7 +95,7 @@ python main.py
 2. **Process PDF:**
    - Select the file and click on **Details** to process and display extracted metadata and content.
 3. **Save JSON:**
-   - Click **Save JSON** to store the results in the `results` folder.
+   - Click **Save JSON** to store the results in the `results` folders.
 4. **Edit JSON:**
    - Use the **Edit JSON** feature to modify and save details.
 5. **Download File:**
@@ -107,13 +107,17 @@ python main.py
 
 ### Folder Structure
 ```plaintext
-pdf_processing_gui/
-├── main.py              # Main application file
-├── requirements.txt     # List of dependencies
-├── .env                 # API key file
-├── uploads/             # Directory for uploaded PDFs
-├── results/             # Directory for JSON output files
-└── README.md            # Project documentation
+palm_google/
+├── main.py                      # Main application file
+├── requirements.txt             # List of dependencies
+├── .env                         # API key file
+├── uploads_adjudication/        # Directory for uploaded adjudications resolutions
+├── results_adjudication/        # Directory for JSON output of the adjudications resolutions
+├── uploads_start/               # Directory for uploaded start resolutions
+├── results_start/               # Directory for JSON output of the start resolutions
+├── icon.ico                     # Icon of the application
+├── loading.gif                  # Gif for the loading screen
+└── README.md                    # Project documentation
 ```
 
 ## Notes

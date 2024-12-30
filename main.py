@@ -678,7 +678,3 @@ def main_gui():
 # ---Main method to call the user interface---
 if __name__ == "__main__":
     main_gui()
-
-
-# ---Pending functions---
-# Find the members of the technical commission in the star resolution
