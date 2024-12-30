@@ -489,12 +489,21 @@ def main_gui():
                         "created_at": lines[2].split(": ", 1)[1],
                         "modified_at": lines[3].split(": ", 1)[1],
                     }
-                    response = {
-                        "Provider": lines[5].split(": ", 1)[1],
-                        "RUC": lines[6].split(": ", 1)[1],
-                        "Awarded Value": lines[7].split(": ", 1)[1],
-                        "Contract Administrator": lines[8].split(": ", 1)[1],
-                    }
+                    selected_type = document_type.get()
+                    if selected_type == "Adjudications Resolution":
+                        response = {
+                            "Provider": lines[5].split(": ", 1)[1],
+                            "RUC": lines[6].split(": ", 1)[1],
+                            "Awarded Value": lines[7].split(": ", 1)[1],
+                            "Contract Administrator": lines[8].split(": ", 1)[1],
+                        }
+                    else:
+                        response = {
+                            "Formulated the Requirement": lines[5].split(": ", 1)[1],
+                            "Approved the Requirement": lines[6].split(": ", 1)[1],
+                            "Delegate of the Highest Authority": lines[7].split(": ", 1)[1],
+                            "Contract Administrator": lines[8].split(": ", 1)[1],
+                        }
 
                     updated_data = {"Metadata": metadata, "Response": response}
 
