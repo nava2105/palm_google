@@ -180,14 +180,15 @@ def extract_data_from_response(response, document_type):
             }
             return result
         elif document_type == "Start Resolution":
-            process_code = data.get('codigo') or "could not find the value"
-            object_of_acquisition = data.get('objeto') or "could not find the value"
-            initial_or_reference_budget = data.get('presupuesto') or "could not find the value"
-            # Build the result bared on the dictionary
+            formulated_the_requirement = data.get("Formulated the Requirement" or "could not find the value")
+            approved_the_requirement = data.get("Approved the Requirement" or "could not find the value")
+            delegate_of_the_highest_authority = data.get("Delegate of the Highest Authority" or "could not find the value")
+            contract_administrator = data.get("Contract Administrator" or "could not find the value")
             result = {
-                "Code": process_code,
-                "Object": object_of_acquisition,
-                "Budget": initial_or_reference_budget,
+                "Formulated the Requirement": formulated_the_requirement,
+                "Approved the Requirement": approved_the_requirement,
+                "Delegate of the Highest Authority": delegate_of_the_highest_authority,
+                "Contract Administrator": contract_administrator
             }
             return result
 
@@ -289,9 +290,10 @@ def main_gui():
                             f"Author: {metadata.get('author', 'N/A')}\n"
                             f"Created At: {metadata.get('created_at', 'N/A')}\n"
                             f"Modified At: {metadata.get('modified_at', 'N/A')}\n\n"
-                            f"Code: {response.get('Code', 'N/A')}\n"
-                            f"Object: {response.get('Object', 'N/A')}\n"
-                            f"Budget: {response.get('Budget', 'N/A')}\n"
+                            f"Formulated the Requirement: {response.get('Formulated the Requirement', 'N/A')}\n"
+                            f"Approved the Requirement: {response.get('Approved the Requirement', 'N/A')}\n"
+                            f"Delegate of the Highest Authority: {response.get('Delegate of the Highest Authority', 'N/A')}\n"
+                            f"Contract Administrator: {response.get('Contract Administrator', 'N/A')}\n"
                         )
 
                     details_text.insert(tk.END, formatted_output)
@@ -419,10 +421,18 @@ def main_gui():
             {proveedor: provider_name, ruc: provider_ruc, valor_adjudicado: awarded_value, administrador: contract_administrator}
             without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."""
         else:
-            question = """what is the process code, what is the object of acquisition and what is the initial or reference budget, if you are not sure, send any value empty)? The response must be given in the format:
-            {codigo: process_code, objeto: object_of_acquisition, presupuesto: budget}
-            without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response.
-            """
+            question = """If you do not find them, provide the available details for the following roles:
+            - Who formulated the requirement.
+            - Who approved the requirement.
+            - The delegate of the highest authority.
+            - The contract administrator.
+            If any information is missing, include the key with an empty value. Format the response in JSON as follows:
+            {
+              "Formulated the Requirement": "Full Name, Office Held",
+              "Approved the Requirement": "Full Name, Office Held",
+              "Delegate of the Highest Authority": "Full Name, Office Held",
+              "Contract Administrator": "Full Name, Office Held"
+            }"""
         response = generate_response_from_embeddings(question, embeddings_with_chunks)
         result = extract_data_from_response(response, selected_type)
         # Format 'result' to be readable if it is a dictionary
