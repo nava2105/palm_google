@@ -60,16 +60,17 @@ def split_text_into_chunks(text):
     )
     return text_splitter.split_text(text)
 
-# Extract metadata from PDF
+# Parse the date to a readable format
 def parse_pdf_date(pdf_date):
-    """
-    Parses and formats PDF metadata date into a readable format.
-    """
     match = re.match(r"D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", pdf_date)
     if match:
+        """
+            Parses and formats PDF metadata date into a readable format.
+            """
         return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
     return "Date not available"
 
+# Extract metadata from PDF
 def extract_metadata(file_path):
     """
     Extracts metadata from a PDF file such as author, creation date, and modification date.
