@@ -1,5 +1,10 @@
 # palm_google
 
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-%23FF6F00.svg?style=for-the-badge&logo=TensorFlow&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/google%20gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)
+![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
+
 ## Table of Contents
 1. [General Info](#general-info)
 2. [Technologies](#technologies)
@@ -20,7 +25,6 @@ The project leverages Google's **Gemini AI** model for content generation and em
 ***
 A list of technologies used within the project:
 - [Python](https://www.python.org): Version 3.12.0
-- [Tkinter](https://docs.python.org/3/library/tkinter.html): GUI Framework
 - [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/): Version 1.25.1 for PDF text extraction
 - [PyPDF2](https://pypi.org/project/PyPDF2/): Version 3.0.1 for PDF metadata
 - [LangChain](https://python.langchain.com/): Version 0.3.11 for text splitting
