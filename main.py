@@ -8,6 +8,7 @@ import threading
 from dotenv import load_dotenv
 
 # Third-party library imports
+import socket
 import numpy as np
 import fitz  # PyMuPDF
 from PyPDF2 import PdfReader
@@ -203,10 +204,8 @@ def save_to_json(metadata, response_data, filename, document_type):
     """
 
     if document_type == "Adjudications Resolution":
-        os.makedirs("results_adjudication", exist_ok=True)
         output_path = os.path.join("results_adjudication", f"{filename}.json")
     else:
-        os.makedirs("results_start", exist_ok=True)
         output_path = os.path.join("results_start", f"{filename}.json")
 
     combined_data = {
@@ -216,6 +215,49 @@ def save_to_json(metadata, response_data, filename, document_type):
     with open(output_path, 'w', encoding='utf-8') as json_file:
         json.dump(combined_data, json_file, ensure_ascii=False, indent=4)
     print(f"Data saved to {output_path}")
+
+
+# ---Utilities---
+# Create required directories
+def ensure_folders_exist():
+    """
+    Ensures that required folders exist before the application starts.
+    """
+    folders = [
+        "uploads_adjudication",
+        "uploads_start",
+        "results_adjudication",
+        "results_start"
+    ]
+    for folder in folders:
+        os.makedirs(folder, exist_ok=True)
+
+# Verifies the connection to internet
+def verify_internet_connection():
+    """
+    Verifies if the computer has an active internet connection.
+    Displays a warning if there's no connection.
+    Returns True if connected, False otherwise.
+    """
+    try:
+        # Try connecting to a well-known internet host (Google's public DNS server)
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
+        return True
+    except (socket.timeout, OSError) as e:
+        # Show messagebox warning for lack of internet
+        messagebox.showwarning(
+            "No Internet Connection",
+            (
+                "This app requires an active internet connection to use Gemini AI functionalities. "
+                "However, you can still review or modify saved data but cannot request new data from the AI. "
+                "Make sure you connect to the internet for full functionality."
+            )
+        )
+        return False
+
+
+# Ensure folders exist
+ensure_folders_exist()
 
 
 # ---UserInterface---
@@ -230,10 +272,8 @@ def main_gui():
         if file_path:
             selected_type = document_type.get()
             if selected_type == "Adjudications Resolution":
-                os.makedirs("uploads_adjudication", exist_ok=True)
                 new_file_path = os.path.join("uploads_adjudication", os.path.basename(file_path))
             else:
-                os.makedirs("uploads_start", exist_ok=True)
                 new_file_path = os.path.join("uploads_start", os.path.basename(file_path))
             shutil.copy(file_path, new_file_path)
             load_file_table()
@@ -406,6 +446,10 @@ def main_gui():
         details_text.insert(tk.END, f"Author: {metadata['author']}\n")
         details_text.insert(tk.END, f"Created At: {metadata['created_at']}\n")
         details_text.insert(tk.END, f"Modified At: {metadata['modified_at']}\n\n")
+
+        if not verify_internet_connection():
+            # Stop further processing if there's no internet connection
+            return
 
         configure_api()
         pdf_content = read_pdf_content(pdf_file_path)
@@ -687,4 +731,11 @@ def main_gui():
 
 # ---Main method to call the user interface---
 if __name__ == "__main__":
+    # Ensure required folders exist
+    ensure_folders_exist()
+
+    # Verify internet connection
+    is_connected = verify_internet_connection()
+
+    # Launch the GUI
     main_gui()
