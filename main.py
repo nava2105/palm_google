@@ -646,6 +646,7 @@ def main_gui():
 
     search_entry = tk.Entry(menu_frame, width=50)
     search_entry.pack(side="right", padx=5, pady=5)
+    search_entry.bind("<Return>", lambda event: filter_files())
 
     search_label = tk.Label(menu_frame, text="Search:", bg=BG_COLOR, fg=FG_COLOR, font=("Helvetica", 10))
     search_label.pack(side="right", padx=5, pady=5)
