@@ -387,6 +387,28 @@ Verify the information twice before submitting your response."""
         filter_text = search_entry.get()
         load_file_table(filter_text)
 
+    def show_help():
+        """
+            Displays an alert box with instructions and explanation of the application's functionalities.
+            """
+        help_message = (
+            "PDF Management System - Functionalities:\n\n"
+            "1. **Upload File**: Select and upload a PDF file to the application for processing.\n"
+            "2. **Download File**: Download the selected file from the system to your local device.\n"
+            "3. **Details**: View processed file details. The application will analyze the content "
+            "using AI to extract key information.\n"
+            "4. **Edit JSON**: Enable manual editing of the JSON details displayed in the details box.\n"
+            "5. **Save JSON**: Save any edits made to the file's JSON data.\n"
+            "6. **Filter**: Use the search bar to filter files by name and display matching entries.\n\n"
+            "### Other Functionalities:\n"
+            "- **Document Type Selection**: Toggle between 'Adjudications Resolution' and 'Start Resolution' "
+            "to view files grouped by category.\n\n"
+            "### Notes:\n"
+            "- Ensure an active internet connection for AI processing.\n"
+            "- Uploaded PDFs are automatically organized based on their category."
+        )
+        messagebox.showinfo("Help", help_message)
+
     root = tk.Tk()
     root.title("PDF Management System")
     root.state('zoomed')
@@ -414,6 +436,7 @@ Verify the information twice before submitting your response."""
     menu_frame.pack(fill="x", pady=5, padx=50)
 
     button_style = {"bg": BUTTON_BG, "fg": BUTTON_FG, "activebackground": SELECTED_BG}
+    tk.Button(menu_frame, text=" ? ", command=show_help, **button_style).pack(side="left", padx=5, pady=5)
     search_button = tk.Button(menu_frame, text="Filter", command=filter_files, **button_style)
     search_button.pack(side="right", padx=5, pady=5)
 
@@ -435,8 +458,6 @@ Verify the information twice before submitting your response."""
     document_type_dropdown.current(0)  # Default selection
 
     document_type.trace_add("write", lambda *args: load_file_table(filter_text=""))  # Automatically refresh the file table with an empty filter
-
-    tk.Label(menu_frame, bg=BG_COLOR).pack(side="left", padx=50)
 
     tk.Button(menu_frame, text="Upload File", command=upload_file, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Download File", command=download_file, **button_style).pack(side="left", padx=5, pady=5)
