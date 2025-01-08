@@ -1,7 +1,6 @@
 # ---Imports---
 # Standard library imports
 import os
-import re
 import json
 import shutil
 import threading
@@ -9,98 +8,19 @@ from dotenv import load_dotenv
 
 # Third-party library imports
 import socket
-import numpy as np
-import fitz  # PyMuPDF
-from PyPDF2 import PdfReader
-from langchain.text_splitter import CharacterTextSplitter
-import google.generativeai as genai
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
 # Classes
 from api_service import APIService
+from pdf_service import PDFService
 
 # ---APIService---
 # Load the environment variables
 load_dotenv()
 api_service = APIService()
-
-
-# ---PDFService---
-# Read PDF content
-def read_pdf_content(file_path):
-    """
-    Reads and extracts text content from a PDF file.
-    """
-    try:
-        pdf_text = ""
-        with fitz.open(file_path) as pdf:
-            for page in pdf:
-                pdf_text += page.get_text()
-        return pdf_text
-    except Exception as error:
-        messagebox.showerror("Error", f"Error reading PDF file: {error}")
-        return ""
-
-# Split text into chunks
-def split_text_into_chunks(text):
-    """
-    Splits the input text into manageable chunks.
-    """
-    text_splitter = CharacterTextSplitter(
-        separator="\n",
-        chunk_size=7000,
-        chunk_overlap=2000,
-        length_function=len
-    )
-    return text_splitter.split_text(text)
-
-# Parse the date to a readable format
-def parse_pdf_date(pdf_date):
-    match = re.match(r"D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", pdf_date)
-    if match:
-        """
-            Parses and formats PDF metadata date into a readable format.
-            """
-        return f"{match[1]}-{match[2]}-{match[3]} {match[4]}:{match[5]}:{match[6]}"
-    return "Date not available"
-
-# Extract metadata from PDF
-def extract_metadata(file_path):
-    """
-    Extracts metadata from a PDF file such as author, creation date, and modification date.
-    Handles invalid or unsupported metadata values gracefully.
-    """
-    metadata_details = {
-        "filename": os.path.basename(file_path),
-        "author": "Not available",
-        "created_at": "Not available",
-        "modified_at": "Not available"
-    }
-
-    try:
-        reader = PdfReader(file_path)
-        metadata = reader.metadata
-
-        if metadata:
-            # Safely extract and validate metadata fields
-            author = metadata.get('/Author')
-            created_date = metadata.get('/CreationDate')
-            modified_date = metadata.get('/ModDate')
-
-            metadata_details["author"] = author if isinstance(author, str) else "Not available"
-            metadata_details["created_at"] = (
-                parse_pdf_date(created_date) if isinstance(created_date, str) else "Not available"
-            )
-            metadata_details["modified_at"] = (
-                parse_pdf_date(modified_date) if isinstance(modified_date, str) else "Not available"
-            )
-
-    except Exception as error:
-        print(f"Error reading PDF metadata: {error}")
-
-    return metadata_details
+pdf_service = PDFService()
 
 
 # ---TextService---
@@ -387,7 +307,7 @@ def main_gui():
         """"
         Processes the selected file and extracts it's metadata and the response given by gemini.
         """
-        metadata = extract_metadata(pdf_file_path)
+        metadata = pdf_service.extract_metadata(pdf_file_path)
         details_text.delete("1.0", tk.END)
         details_text.insert(tk.END, f"File Name: {metadata['filename']}\n")
         details_text.insert(tk.END, f"Author: {metadata['author']}\n")
@@ -399,11 +319,11 @@ def main_gui():
             return
 
         api_service.configure_api()
-        pdf_content = read_pdf_content(pdf_file_path)
+        pdf_content = pdf_service.read_pdf_content(pdf_file_path)
         if not pdf_content:
             return
 
-        chunks = split_text_into_chunks(pdf_content)
+        chunks = pdf_service.split_text_into_chunks(pdf_content)
         embeddings_with_chunks = [(chunk, api_service.generate_text_embedding(chunk)) for chunk in chunks]
 
         # Choose prompt based on document type
