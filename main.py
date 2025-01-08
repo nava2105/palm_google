@@ -15,73 +15,16 @@ from PIL import Image, ImageTk
 # Classes
 from api_service import APIService
 from pdf_service import PDFService
+from text_service import TextService
 
-# ---APIService---
+# ---Initialize---
 # Load the environment variables
 load_dotenv()
+
+# Create instances
 api_service = APIService()
 pdf_service = PDFService()
-
-
-# ---TextService---
-# Process JSON response and extract data
-def extract_data_from_response(response, document_type):
-    """
-    Processes a JSON response and extracts specific fields in dictionary format.
-    """
-    try:
-        if not response.strip():
-            return {"Error": "Response is empty or invalid."}
-
-        data = json.loads(response)
-
-        if document_type == "Adjudications Resolution":
-            provider = data.get('proveedor') or "could not find the value"
-            ruc = data.get('ruc') or "could not find the value"
-            awarded_value = data.get('valor_adjudicado') or "could not find the value"
-            administrator = data.get('administrador') or "could not find the value"
-            # Build the result bared on the dictionary
-            result = {
-                "Provider": provider,
-                "RUC": ruc,
-                "Awarded Value": awarded_value,
-                "Contract Administrator": administrator,
-            }
-            return result
-        elif document_type == "Start Resolution":
-            formulated_the_requirement = data.get("Formulated the Requirement" or "could not find the value")
-            approved_the_requirement = data.get("Approved the Requirement" or "could not find the value")
-            delegate_of_the_highest_authority = data.get("Delegate of the Highest Authority" or "could not find the value")
-            contract_administrator = data.get("Contract Administrator" or "could not find the value")
-            result = {
-                "Formulated the Requirement": formulated_the_requirement,
-                "Approved the Requirement": approved_the_requirement,
-                "Delegate of the Highest Authority": delegate_of_the_highest_authority,
-                "Contract Administrator": contract_administrator
-            }
-            return result
-
-    except json.JSONDecodeError:
-        return {"Error": "The response is not valid JSON."}
-
-# Save details to JSON file
-def save_to_json(metadata, response_data, filename, document_type):
-    """
-    Saves extracted metadata and response data to a JSON file.
-    """
-
-    if document_type == "Adjudications Resolution":
-        output_path = os.path.join("results_adjudication", f"{filename}.json")
-    else:
-        output_path = os.path.join("results_start", f"{filename}.json")
-
-    combined_data = {
-        "Metadata": metadata,
-        "Response": response_data
-    }
-    with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(combined_data, json_file, ensure_ascii=False, indent=4)
-    print(f"Data saved to {output_path}")
+text_service = TextService()
 
 
 # ---Utilities---
@@ -346,7 +289,7 @@ def main_gui():
               "Contract Administrator": "Full Name, Office Held"
             }"""
         response = api_service.generate_response_from_embeddings(question, embeddings_with_chunks)
-        result = extract_data_from_response(response, selected_type)
+        result = text_service.extract_data_from_response(response, selected_type)
         # Format 'result' to be readable if it is a dictionary
         if isinstance(result, dict):
             formatted_result = "\n".join([f"{key}: {value}" for key, value in result.items()])
@@ -355,7 +298,7 @@ def main_gui():
 
         details_text.insert(tk.END, formatted_result)
 
-        save_to_json(metadata, result, os.path.splitext(file_name)[0], selected_type)
+        text_service.save_to_json(metadata, result, os.path.splitext(file_name)[0], selected_type)
 
     def enable_json_editing():
         """
