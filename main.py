@@ -7,7 +7,6 @@ import threading
 from dotenv import load_dotenv
 
 # Third-party library imports
-import socket
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
@@ -16,6 +15,7 @@ from PIL import Image, ImageTk
 from api_service import APIService
 from pdf_service import PDFService
 from text_service import TextService
+from utilities import Utilities
 
 # ---Initialize---
 # Load the environment variables
@@ -25,49 +25,7 @@ load_dotenv()
 api_service = APIService()
 pdf_service = PDFService()
 text_service = TextService()
-
-
-# ---Utilities---
-# Create required directories
-def ensure_folders_exist():
-    """
-    Ensures that required folders exist before the application starts.
-    """
-    folders = [
-        "uploads_adjudication",
-        "uploads_start",
-        "results_adjudication",
-        "results_start"
-    ]
-    for folder in folders:
-        os.makedirs(folder, exist_ok=True)
-
-# Verifies the connection to internet
-def verify_internet_connection():
-    """
-    Verifies if the computer has an active internet connection.
-    Displays a warning if there's no connection.
-    Returns True if connected, False otherwise.
-    """
-    try:
-        # Try connecting to a well-known internet host (Google's public DNS server)
-        socket.create_connection(("8.8.8.8", 53), timeout=3)
-        return True
-    except (socket.timeout, OSError) as e:
-        # Show messagebox warning for lack of internet
-        messagebox.showwarning(
-            "No Internet Connection",
-            (
-                "This app requires an active internet connection to use Gemini AI functionalities. "
-                "However, you can still review or modify saved data but cannot request new data from the AI. "
-                "Make sure you connect to the internet for full functionality."
-            )
-        )
-        return False
-
-
-# Ensure folders exist
-ensure_folders_exist()
+utilities = Utilities()
 
 
 # ---UserInterface---
@@ -81,11 +39,8 @@ def main_gui():
         file_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
         if file_path:
             selected_type = document_type.get()
-            if selected_type == "Adjudications Resolution":
-                new_file_path = os.path.join("uploads_adjudication", os.path.basename(file_path))
-            else:
-                new_file_path = os.path.join("uploads_start", os.path.basename(file_path))
-            shutil.copy(file_path, new_file_path)
+            destination_folder = "uploads_adjudication" if selected_type == "Adjudications Resolution" else "uploads_start"
+            utilities.copy_to_folder(file_path, destination_folder)
             load_file_table()
 
     def get_json_path(selected_item, tree, document_type):
@@ -94,10 +49,7 @@ def main_gui():
         """
         file_name = tree.item(selected_item, 'values')[1]
         base_name, _ = os.path.splitext(file_name)
-        if document_type == "Adjudications Resolution":
-            return os.path.join("results_adjudication", f"{base_name}.json")
-        else:
-            return os.path.join("results_start", f"{base_name}.json")
+        return utilities.get_json_path(base_name, document_type)
 
     def load_json_details(event):
         """
@@ -257,7 +209,7 @@ def main_gui():
         details_text.insert(tk.END, f"Created At: {metadata['created_at']}\n")
         details_text.insert(tk.END, f"Modified At: {metadata['modified_at']}\n\n")
 
-        if not verify_internet_connection():
+        if not utilities.verify_internet_connection():
             # Stop further processing if there's no internet connection
             return
 
@@ -543,10 +495,15 @@ def main_gui():
 # ---Main method to call the user interface---
 if __name__ == "__main__":
     # Ensure required folders exist
-    ensure_folders_exist()
+    utilities.ensure_folders_exist([
+        "uploads_adjudication",
+        "uploads_start",
+        "results_adjudication",
+        "results_start"
+    ])
 
     # Verify internet connection
-    is_connected = verify_internet_connection()
+    is_connected = utilities.verify_internet_connection()
 
     # Launch the GUI
     main_gui()
