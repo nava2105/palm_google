@@ -6,6 +6,7 @@ import numpy as np
 from dotenv import load_dotenv
 
 
+# noinspection PyMethodMayBeStatic
 class APIService:
     def __init__(self):
         """

@@ -224,9 +224,20 @@ def main_gui():
         # Choose prompt based on document type
         selected_type = document_type.get()
         if selected_type == "Adjudications Resolution":
-            question = """To which provider was the contract awarded, what is the provider's RUC (consisting of 13 numerical values), what is the awarded value, and who is the contract administrator (make sure that this data is the administrator of the contract and that you are not confusing it with another person, if you are not sure, send this value empty)? The response must be given in the format:
-            {proveedor: provider_name, ruc: provider_ruc, valor_adjudicado: awarded_value, administrador: contract_administrator}
-            without any mor information or text than the one that is required and be sure to check at least 2 times the data provided before submitting your response."""
+            question = """Identify and extract the following information from the document:
+- The name of the provider to whom the contract was awarded.
+- The RUC of the provider (13-digit numerical value).
+- The awarded value.
+- The name of the contract administrator. If you are unsure about this last detail or cannot find it, leave it empty.
+
+Respond strictly in the following JSON format:
+{
+  "Provider": "Name of the provider",
+  "RUC": "Provider's RUC",
+  "Awarded Value": "Awarded value",
+  "Contract Administrator": "Contract administrator"
+}
+Verify the information twice before submitting your response."""
         else:
             question = """If you do not find them, provide the available details for the following roles:
             - Who formulated the requirement.

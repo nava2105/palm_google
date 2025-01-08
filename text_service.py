@@ -24,10 +24,10 @@ class TextService:
             data = json.loads(response)
 
             if document_type == "Adjudications Resolution":
-                provider = data.get("proveedor", "could not find the value")
-                ruc = data.get("ruc", "could not find the value")
-                awarded_value = data.get("valor_adjudicado", "could not find the value")
-                administrator = data.get("administrador", "could not find the value")
+                provider = data.get("Provider", "could not find the value")
+                ruc = data.get("RUC", "could not find the value")
+                awarded_value = data.get("Awarded Value", "could not find the value")
+                administrator = data.get("Contract Administrator", "could not find the value")
 
                 result = {
                     "Provider": provider,
@@ -80,50 +80,3 @@ class TextService:
         except Exception as e:
             print(f"Error saving JSON file: {e}")
             messagebox.showerror("Error", f"Failed to save JSON file: {str(e)}")
-
-    @staticmethod
-    def parse_formatted_text_to_save(edited_content, document_type):
-        """
-        Converts the content of the text widget (JSON details) into a dictionary for storage.
-        """
-        try:
-            lines = edited_content.split("\n")
-            metadata = {
-                "filename": lines[0].split(": ", 1)[1],
-                "author": lines[1].split(": ", 1)[1],
-                "created_at": lines[2].split(": ", 1)[1],
-                "modified_at": lines[3].split(": ", 1)[1],
-            }
-
-            if document_type == "Adjudications Resolution":
-                response = {
-                    "Provider": lines[5].split(": ", 1)[1],
-                    "RUC": lines[6].split(": ", 1)[1],
-                    "Awarded Value": lines[7].split(": ", 1)[1],
-                    "Contract Administrator": lines[8].split(": ", 1)[1],
-                }
-            else:  # Start Resolution
-                response = {
-                    "Formulated the Requirement": lines[5].split(": ", 1)[1],
-                    "Approved the Requirement": lines[6].split(": ", 1)[1],
-                    "Delegate of the Highest Authority": lines[7].split(": ", 1)[1],
-                    "Contract Administrator": lines[8].split(": ", 1)[1],
-                }
-
-            return {"Metadata": metadata, "Response": response}
-        except Exception as e:
-            print(f"Error parsing edited text: {e}")
-            return {"Error": "Failed to parse the edited content. Please check the format."}
-
-    @staticmethod
-    def save_parsed_json_to_file(parsed_data, json_file_path):
-        """
-        Saves the processed data (metadata and response) in a JSON file.
-        """
-        try:
-            with open(json_file_path, 'w', encoding='utf-8') as json_file:
-                json.dump(parsed_data, json_file, ensure_ascii=False, indent=4)
-            messagebox.showinfo("Success", f"JSON file saved successfully: {json_file_path}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save JSON file: {e}")
-            print(f"Error saving JSON file: {e}")
