@@ -18,18 +18,13 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
+# Classes
+from api_service import APIService
 
 # ---APIService---
 # Load the environment variables
 load_dotenv()
-
-# Configure the API Key
-def configure_api():
-    """
-    Configures the API key for Google Generative AI.
-    """
-    google_api_key = os.getenv('GOOGLE_API_KEY')
-    genai.configure(api_key=google_api_key)
+api_service = APIService()
 
 
 # ---PDFService---
@@ -106,54 +101,6 @@ def extract_metadata(file_path):
         print(f"Error reading PDF metadata: {error}")
 
     return metadata_details
-
-
-# ---NLPService---
-# Generate content based on embeddings
-def generate_response_from_embeddings(question, embeddings_with_chunks, model_name='gemini-1.5-flash'):
-    """
-    Generates a response using the question and relevant embeddings.
-    """
-    model = genai.GenerativeModel(model_name)
-
-    # Generate embedding for the question
-    question_embedding = genai.embed_content(
-        model="models/embedding-001",
-        content=question,
-        task_type="retrieval_document",
-        title="Question"
-    )['embedding']
-
-    def calculate_cosine_similarity(vector_a, vector_b):
-        return np.dot(vector_a, vector_b) / (np.linalg.norm(vector_a) * np.linalg.norm(vector_b))
-
-    # Find the most relevant chunk
-    similarities = [
-        (calculate_cosine_similarity(question_embedding, embedding), chunk)
-        for chunk, embedding in embeddings_with_chunks
-    ]
-    most_relevant_chunk = max(similarities, key=lambda x: x[0])[1]
-
-    # Generate the response using the most relevant chunk
-    prompt = f"Context:\n{most_relevant_chunk}\n\nQuestion:\n{question}"
-    response = model.generate_content(prompt)
-
-    # Clean JSON formatting
-    cleaned_response = response.text.replace("```json", "").replace("```", "").strip()
-    return cleaned_response
-
-# Generate embeddings for a given text
-def generate_text_embedding(text, title="Text Chunk"):
-    """
-    Generates embeddings for the provided text using Google's embedding model.
-    """
-    result = genai.embed_content(
-        model="models/embedding-001",
-        content=text,
-        task_type="retrieval_document",
-        title=title
-    )
-    return result['embedding']
 
 
 # ---TextService---
@@ -451,13 +398,13 @@ def main_gui():
             # Stop further processing if there's no internet connection
             return
 
-        configure_api()
+        api_service.configure_api()
         pdf_content = read_pdf_content(pdf_file_path)
         if not pdf_content:
             return
 
         chunks = split_text_into_chunks(pdf_content)
-        embeddings_with_chunks = [(chunk, generate_text_embedding(chunk)) for chunk in chunks]
+        embeddings_with_chunks = [(chunk, api_service.generate_text_embedding(chunk)) for chunk in chunks]
 
         # Choose prompt based on document type
         selected_type = document_type.get()
@@ -478,7 +425,7 @@ def main_gui():
               "Delegate of the Highest Authority": "Full Name, Office Held",
               "Contract Administrator": "Full Name, Office Held"
             }"""
-        response = generate_response_from_embeddings(question, embeddings_with_chunks)
+        response = api_service.generate_response_from_embeddings(question, embeddings_with_chunks)
         result = extract_data_from_response(response, selected_type)
         # Format 'result' to be readable if it is a dictionary
         if isinstance(result, dict):
