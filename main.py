@@ -393,17 +393,17 @@ Verify the information twice before submitting your response."""
             """
         help_message = (
             "PDF Management System - Functionalities:\n\n"
-            "1. **Upload File**: Select and upload a PDF file to the application for processing.\n"
-            "2. **Download File**: Download the selected file from the system to your local device.\n"
-            "3. **Details**: View processed file details. The application will analyze the content "
+            "1. Upload File: Select and upload a PDF file to the application for processing.\n"
+            "2. Download File: Download the selected file from the system to your local device.\n"
+            "3. Details: View processed file details. The application will analyze the content "
             "using AI to extract key information.\n"
-            "4. **Edit JSON**: Enable manual editing of the JSON details displayed in the details box.\n"
-            "5. **Save JSON**: Save any edits made to the file's JSON data.\n"
-            "6. **Filter**: Use the search bar to filter files by name and display matching entries.\n\n"
-            "### Other Functionalities:\n"
-            "- **Document Type Selection**: Toggle between 'Adjudications Resolution' and 'Start Resolution' "
+            "4. Edit Details: Enable manual editing of the JSON details displayed in the details box.\n"
+            "5. Save Details: Save any edits made to the file's JSON data.\n"
+            "6. Filter: Use the search bar to filter files by name and display matching entries.\n\n"
+            "Other Functionalities:\n"
+            "- Document Type Selection: Toggle between 'Adjudications Resolution' and 'Start Resolution' "
             "to view files grouped by category.\n\n"
-            "### Notes:\n"
+            "Notes:\n"
             "- Ensure an active internet connection for AI processing.\n"
             "- Uploaded PDFs are automatically organized based on their category."
         )
@@ -462,8 +462,8 @@ Verify the information twice before submitting your response."""
     tk.Button(menu_frame, text="Upload File", command=upload_file, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Download File", command=download_file, **button_style).pack(side="left", padx=5, pady=5)
     tk.Button(menu_frame, text="Details", command=show_details, **button_style).pack(side="left", padx=5, pady=5)
-    tk.Button(menu_frame, text="Edit JSON", command=enable_json_editing, **button_style).pack(side="left", padx=5, pady=5)
-    tk.Button(menu_frame, text="Save JSON", command=save_json_edits, **button_style).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Edit Details", command=enable_json_editing, **button_style).pack(side="left", padx=5, pady=5)
+    tk.Button(menu_frame, text="Save Details", command=save_json_edits, **button_style).pack(side="left", padx=5, pady=5)
 
     # Main Content Frame
     content_frame = tk.Frame(root, bg=BG_COLOR)
